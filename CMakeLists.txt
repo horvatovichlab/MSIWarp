@@ -16,7 +16,7 @@ if (MSVC)
     set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} /W4")
 endif()
 
-# Build the maldixplore c++ library.
+# Build the msiwarp c++ library.
 # ------------------------------
 # Threads.
 find_package(Threads REQUIRED)

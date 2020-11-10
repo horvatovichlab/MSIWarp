@@ -1,6 +1,7 @@
 #include "warp.hpp"
 
 #include <algorithm>
+#include <numeric>
 #include <cmath>
 #include <random>   // RANSAC
 

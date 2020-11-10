@@ -73,7 +73,6 @@ setup(
         'numpy',
         'scipy',
         'matplotlib',
-        'pandas',
         'pyimzml'
     ],
     zip_safe=False,

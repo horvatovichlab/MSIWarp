@@ -50,49 +50,8 @@ std::vector<triplet::triplet> get_triplets_range(const std::string& fname,
 }
 
 /* ------ bindings to warp functions and data structures ------ */
-std::vector<std::pair<warp::ransac_result, std::vector<warp::node>>>
-align_ransac(const std::vector<std::vector<warp::peak>>& spectra,
-             const std::vector<warp::peak> s_r,
-             const warp::ransac_params& params) {
-  return warp::align_ransac(spectra, s_r, params);
-}
 
-double compute_overlap(const std::vector<warp::peak>& reference_peaks,
-                       const std::vector<warp::peak>& source_peaks) {
-  return warp::compute_overlap(source_peaks, reference_peaks);
-}
-
-std::vector<warp::node> init_nodes(const std::vector<double>& mzs,
-                                   const std::vector<double>& sigmas,
-                                   uint32_t n_steps) {
-  return warp::init_nodes(mzs, sigmas, n_steps);
-}
-
-std::vector<warp::peak> peaks_between(const std::vector<warp::peak>& peaks,
-                                      double mz_begin,
-                                      double mz_end) {
-  return warp::peaks_between(peaks, mz_begin, mz_end);
-}
-
-std::vector<warp::peak_pair> peak_pairs_between(
-    const std::vector<warp::peak_pair>& pairs,
-    double mz_begin,
-    double mz_end) {
-  return warp::peak_pairs_between(pairs, mz_begin, mz_end);
-}
-
-std::vector<warp::peak> peaks_top_n(const std::vector<warp::peak>& peaks,
-                                    size_t n) {
-  return warp::peaks_top_n(peaks, n);
-}
-
-std::vector<warp::peak_pair> peak_pairs_top_n(
-    const std::vector<warp::peak_pair>& peak_pairs,
-    size_t n) {
-  return warp::peak_pairs_top_n(peak_pairs, n);
-}
-
-// Naive implementation
+// Compute warping surface for peak lists and warping nodes
 std::vector<double> compute_warping_surf(
     const std::vector<warp::peak>& peaks_src,
     const std::vector<warp::peak>& peaks_ref,
@@ -102,7 +61,7 @@ std::vector<double> compute_warping_surf(
                                     node_right);
 }
 
-// Alternative and more efficient warping
+// Compute warping surface for a list of matched peaks and warping nodes
 std::vector<double> compute_warping_surf_pairs(
     const std::vector<std::pair<warp::peak, warp::peak>>& peaks_pairs,
     const warp::node& node_left,
@@ -110,14 +69,7 @@ std::vector<double> compute_warping_surf_pairs(
   return warp::compute_warping_surf(peaks_pairs, node_left, node_right);
 }
 
-// Find optimal combination of warpings with dynamic programming
-std::vector<size_t> optimal_warping(
-    const std::vector<std::vector<double>>& warping_surfs,
-    size_t n_steps) {
-  return warp::optimal_warping(warping_surfs, n_steps);
-}
-
-//
+// TODO: unfinished interface to RANSAC
 warp::ransac_result ransac(
     const std::vector<std::vector<warp::peak_pair>>& peak_pairs,
     const std::vector<warp::node>& warping_nodes,
@@ -132,25 +84,6 @@ warp::ransac_result ransac(
                       distance_threshold);
 }
 
-// Splats peaks on m/z sampling points xi
-std::vector<double> splat_peaks(const std::vector<warp::peak>& peaks,
-                                const std::vector<double>& xi,
-                                double splat_dist) {
-  return warp::splat_peaks(peaks, xi, splat_dist);
-}
-
-std::vector<warp::peak> merge_spectra(const std::vector<warp::peak>& s_a,
-                                      const std::vector<warp::peak>& s_b) {
-  return warp::merge_spectra(s_a, s_b);
-}
-
-/* Finds overlapping peaks between spectrum s_a and s_b. Linear complexity. */
-std::vector<std::pair<warp::peak, warp::peak>> overlapping_peak_pairs(
-    const std::vector<warp::peak>& s_a,
-    const std::vector<warp::peak>& s_b,
-    double max_dist) {
-  return warp::overlapping_peak_pairs(s_a, s_b, max_dist);
-}
 
 }  // namespace python_api
 
@@ -212,30 +145,30 @@ PYBIND11_MODULE(msiwarp, m) {
         Warp peaks with fixed warping nodes and optimal moves.
     )pbdoc");
 
-  m.def("initialize_nodes", &python_api::init_nodes, R"pbdoc(
+  m.def("initialize_nodes", &warp::init_nodes, R"pbdoc(
         Initializes warping nodes. Warping will be performed
          between each pair of nodes.
     )pbdoc");
 
-  m.def("peaks_between", &python_api::peaks_between, R"pbdoc(
+  m.def("peaks_between", &warp::peaks_between, R"pbdoc(
         Finds all peaks between mz_begin and mz_end in peaks.
         Peaks are required to be sorted by mz.
     )pbdoc");
 
-  m.def("peak_pairs_between", &python_api::peak_pairs_between, R"pbdoc(
+  m.def("peak_pairs_between", &warp::peak_pairs_between, R"pbdoc(
         Finds all pairs in range [mz_begin, mz_end).
         Pairs are required to be sorted by mz.
     )pbdoc");
 
-  m.def("peaks_top_n", &python_api::peaks_top_n, R"pbdoc(
+  m.def("peaks_top_n", &warp::peaks_top_n, R"pbdoc(
         Returns the top n peaks.
     )pbdoc");
 
-  m.def("peak_pairs_top_n", &python_api::peak_pairs_top_n, R"pbdoc(
+  m.def("peak_pairs_top_n", &warp::peak_pairs_top_n, R"pbdoc(
         Returns the top n peaks.
     )pbdoc");
 
-  m.def("compute_overlap", &python_api::compute_overlap, R"pbdoc(
+  m.def("compute_overlap", &warp::compute_overlap, R"pbdoc(
         Computes the total overlap between peaks in a and b.
     )pbdoc");
 
@@ -248,7 +181,7 @@ PYBIND11_MODULE(msiwarp, m) {
         Computes the overlap surface for all possible node moves.
     )pbdoc");
 
-  m.def("optimal_warping", &python_api::optimal_warping, R"pbdoc(
+  m.def("optimal_warping", &warp::optimal_warping, R"pbdoc(
         Find the optimal combination of warpings.
     )pbdoc");
 
@@ -256,15 +189,15 @@ PYBIND11_MODULE(msiwarp, m) {
         Random sampling consensus of preliminary peak matches.
     )pbdoc");
 
-  m.def("splat_peaks", &python_api::splat_peaks, R"pbdoc(
+  m.def("splat_peaks", &warp::splat_peaks, R"pbdoc(
         Splats peaks on sampling points, xi. Peaks must be sorted by m/z.
     )pbdoc");
 
-  m.def("merge_spectra", &python_api::merge_spectra, R"pbdoc(
+  m.def("merge_spectra", &warp::merge_spectra, R"pbdoc(
         Merges peak list p_a and p_b. p_a and p_b must be sorted by m/z.
     )pbdoc");
 
-  m.def("overlapping_peak_pairs", &python_api::overlapping_peak_pairs, R"pbdoc(
+  m.def("overlapping_peak_pairs", &warp::overlapping_peak_pairs, R"pbdoc(
         Get all overlapping peak pairs between s_a and s_b. Peaks must be sorted by m/z.
     )pbdoc");
 
@@ -273,7 +206,7 @@ PYBIND11_MODULE(msiwarp, m) {
       .def_readonly("mz", &warp::peak::mz)
       .def_readonly("height", &warp::peak::height)
       .def_readonly("sigma_mz", &warp::peak::sigma_mz)
-      .def(py::init<uint64_t, double, double, double>())
+      .def(py::init<uint32_t, double, double, double>())
       .def("__repr__", [](const warp::peak& p) {
         return "Peak <entity_id: " + std::to_string(p.id) +
                ", mz: " + std::to_string(p.mz) +
