@@ -85,7 +85,7 @@ print("warped spectra in {:0.2f}s".format(t3 - t2))
     found optimal warpings in 77.72s
     warped spectra in 7.11s
 
-and store warped spectra in a new imzML file:
+and finally, store warped spectra in a new imzML file:
 
 ```python
 # convert back to pyimzml format
@@ -99,6 +99,41 @@ with ImzMLWriter(output_imzml) as w:
     for s_i, coords in zip(warped_spectra, positions):
         # writes data to the .ibd file
         w.addSpectrum(to_mz(s_i), to_height(s_i), coords)
+```
+
+Storing the data set in the *MSI triplet* format enables fast queries of all data set peaks within a mass range.
+```python
+if mx.spectra_to_triplets(fpath_triplets_raw, spectra):
+    print("wrote raw MSI triplets to file")
+    
+if mx.spectra_to_triplets(fpath_triplets_warped, warped_spectra):
+    print("wrote warped MSI triplets to file")
+
+from msiwarp.util.warp import plot_range
+
+mz_ref = np.sort(to_mz(mx.peaks_top_n(s_r, 3)))
+mass_tolerance = 3
+```
+
+After generating our triplet files, we easily plot mass scatters:
+
+```python
+fig, ax = plt.subplots(1, 3, figsize=(12,4), sharey=True)
+
+for i, mz_i in enumerate(mz_ref):
+    d = mass_tolerance * mz_i / 1e6 # -+ mass_tolerance around reference mass 
+    mz0 = mz_i - d
+    mz1 = mz_i + d    
+    
+    plot_range(fpath_triplets_raw, mz0, mz1, ax[i], 'tab:cyan', 25, in_ppm=True)
+    plot_range(fpath_triplets_warped, mz0, mz1, ax[i], 'tab:orange', 25, in_ppm=True)
+    
+    ax[i].set_facecolor((0.0, 0.0, 0.0))
+    ax[i].set_title('m/z {:0.3f}'.format(mz_i))
+    ax[i].set_xticks([-mass_tolerance, 0, mass_tolerance])
+    ax[i].set_xlabel('relative shift (ppm)')
+    
+ax[0].set_ylabel('spectrum index')
 ```
 
 ![DESI MASS SCATTER](/docs/mass_scatter_desi.png)
