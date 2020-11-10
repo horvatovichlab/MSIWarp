@@ -101,5 +101,6 @@ with ImzMLWriter(output_imzml) as w:
         w.addSpectrum(to_mz(s_i), to_height(s_i), coords)
 ```
 
+![DESI MASS SCATTER](/docs/mass_scatter_desi.png)
 
 ## Misc
