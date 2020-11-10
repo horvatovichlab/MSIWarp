@@ -37,7 +37,69 @@ nodes = mx.initialize_nodes(node_mzs, node_deltas, n_steps)
 ```
 ### Interfacing with pyimzml (TODO: add link to pyimzml homepage)
 
+Load a centroided imzml data set into RAM
 
+```python
+import msiwarp as mx
+
+from pyimzml.ImzMLParser import ImzMLParser
+from msiwarp.util.warp import to_mx_peaks
+
+positions = []
+spectra = []
+
+p = ImzMLParser(imzml_path)
+for idx, coords in enumerate(p.coordinates):
+    positions.append(coords)
+    
+    # 
+    mzs, hs = p.getspectrum(idx)    
+    spectra.append(to_mx_peaks(mzs, hs,
+                               sigma_1, id = idx,
+                               instrument_type = 'orbitrap'))
+
+```
+
+Warp spectra
+
+```python
+# choose a reference spectrum
+i_r = 200
+s_r = spectra[i_r]
+
+print("warping spectra...")
+
+import time
+t0 = time.time()
+optimal_moves = mx.find_optimal_spectra_warpings(spectra, s_r, nodes, epsilon)
+t1 = time.time()
+print("found optimal warpings in {:0.2f}s".format(t1 - t0))
+
+t2 = time.time()
+warped_spectra = [mx.warp_peaks(s_i, nodes, o_i) for (s_i, o_i) in zip(spectra, optimal_moves)]
+t3 = time.time()
+print("warped spectra in {:0.2f}s".format(t3 - t2))
+```
+
+    warping spectra...
+    found optimal warpings in 77.72s
+    warped spectra in 7.11s
+
+and store warped spectra in a new imzML file:
+
+```python
+# convert back to pyimzml format
+
+from pyimzml.ImzMLWriter import ImzMLWriter
+from msiwarp.util.warp import to_mz, to_height
+
+output_imzml = fdir + 'output.imzML'
+
+with ImzMLWriter(output_imzml) as w:
+    for s_i, coords in zip(warped_spectra, positions):
+        # writes data to the .ibd file
+        w.addSpectrum(to_mz(s_i), to_height(s_i), coords)
+```
 
 
 ## Misc
