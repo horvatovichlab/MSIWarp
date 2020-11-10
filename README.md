@@ -45,14 +45,10 @@ import msiwarp as mx
 from pyimzml.ImzMLParser import ImzMLParser
 from msiwarp.util.warp import to_mx_peaks
 
-positions = []
 spectra = []
 
 p = ImzMLParser(imzml_path)
 for idx, coords in enumerate(p.coordinates):
-    positions.append(coords)
-    
-    # 
     mzs, hs = p.getspectrum(idx)    
     spectra.append(to_mx_peaks(mzs, hs,
                                sigma_1, id = idx,
@@ -60,7 +56,7 @@ for idx, coords in enumerate(p.coordinates):
 
 ```
 
-then warp spectra:
+then warp the spectra:
 
 ```python
 # choose a reference spectrum
@@ -85,18 +81,15 @@ print("warped spectra in {:0.2f}s".format(t3 - t2))
     found optimal warpings in 77.72s
     warped spectra in 7.11s
 
-and finally, store warped spectra in a new imzML file:
+and finally, store the warped spectra in a new imzML file:
 
 ```python
-# convert back to pyimzml format
-
 from pyimzml.ImzMLWriter import ImzMLWriter
 from msiwarp.util.warp import to_mz, to_height
 
-output_imzml = fdir + 'output.imzML'
-
+output_imzml = 'output.imzML'
 with ImzMLWriter(output_imzml) as w:
-    for s_i, coords in zip(warped_spectra, positions):
+    for s_i, coords in zip(warped_spectra, p.coordinates):
         # writes data to the .ibd file
         w.addSpectrum(to_mz(s_i), to_height(s_i), coords)
 ```
@@ -116,7 +109,7 @@ from msiwarp.util.warp import plot_range
 mz_ref = np.sort(to_mz(mx.peaks_top_n(s_r, 3)))
 mass_tolerance = 3
 ```
-This enables fast queries of all data set peaks within a mass range. After generating our triplet files, we can easily plot mass scatters:
+which enables fast queries of all data set peaks within a mass range. After generating our triplet files, we can easily plot mass scatters:
 
 ```python
 fig, ax = plt.subplots(1, 3, figsize=(12,4), sharey=True)
