@@ -3,7 +3,6 @@ build/
 dist/
 src/python-bindings/msiwarp.egg-info/
 examples/datasets/
-*.png
 .vscode/
 
 # ---> JupyterNotebooks
