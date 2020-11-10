@@ -18,26 +18,26 @@ MSIWarp models a spectrum as a list of peaks, where each peak has the following 
 3. height
 4. sigma, the modelled width of the peak
 
-### Initializing spectra
-To generate a MSIWarp spectrum from a list of m/z and intensity values:
+### Initializing an MSIWarp spectrum
+We can initialize an MSIWarp spectrum from a list of m/z and intensity values:
 ```python
 import numpy as np
 mzs = np.array([...]) # peak m/z values
-hs = np.array([...]) # peak m/z heights
+hs = np.array([...]) # peak heights
 
 import msiwarp as mx
 s = [mx.peak(i, mz_i, h_i, 1.0) for i, (mz_i, h_i) in enumerate(zip(mzs, hs))]
 ```
-To search for an optimal warping between a pair of spectra we 
+To search for an optimal warping between a pair of spectra we have to provide a set of warping nodes.
 
-### Setting up warping nodes
+### Setting up the warping nodes
 The slack is equal to the number of steps times the step size (node delta)
-```
+```python
 nodes = mx.initialize_nodes(node_mzs, node_deltas, n_steps)
 ```
-### Interfacing with pyimzml (TODO: add link to pyimzml homepage)
+### Interfacing with pyimzml (https://github.com/alexandrovteam/pyimzML)
 
-Load a centroided imzml data set into RAM
+Load a centroided imzML data set into RAM:
 
 ```python
 import msiwarp as mx
@@ -60,7 +60,7 @@ for idx, coords in enumerate(p.coordinates):
 
 ```
 
-Warp spectra
+then warp spectra:
 
 ```python
 # choose a reference spectrum
@@ -101,11 +101,13 @@ with ImzMLWriter(output_imzml) as w:
         w.addSpectrum(to_mz(s_i), to_height(s_i), coords)
 ```
 
-Storing the data set in the *MSI triplet* format enables fast queries of all data set peaks within a mass range.
+We can also store the data set in the *MSI triplet* format:
 ```python
+fpath_triplets_raw = "..."
 if mx.spectra_to_triplets(fpath_triplets_raw, spectra):
     print("wrote raw MSI triplets to file")
-    
+
+fpath_triplets_warped = "..."
 if mx.spectra_to_triplets(fpath_triplets_warped, warped_spectra):
     print("wrote warped MSI triplets to file")
 
@@ -114,8 +116,7 @@ from msiwarp.util.warp import plot_range
 mz_ref = np.sort(to_mz(mx.peaks_top_n(s_r, 3)))
 mass_tolerance = 3
 ```
-
-After generating our triplet files, we easily plot mass scatters:
+This enables fast queries of all data set peaks within a mass range. After generating our triplet files, we can easily plot mass scatters:
 
 ```python
 fig, ax = plt.subplots(1, 3, figsize=(12,4), sharey=True)
