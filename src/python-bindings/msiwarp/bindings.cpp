@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <fstream>
 #include <vector>
+#include <numeric>
 
 #include "util/msi_triplet.hpp"
 #include "warp/warp.hpp"
@@ -12,25 +13,18 @@ namespace python_api {
 
 /* ------ bindings to read/write functions of binary data ------ */
 
-int write_triplets(const std::string& fname,
-                   const std::vector<triplet::triplet>& ts) {
+bool write_triplets(const std::string& fname,
+                    const std::vector<triplet::triplet>& ts) {
   std::ofstream ofs{fname, std::ios::binary};
-  if (triplet::write_triplets(ofs, ts)) {
-    return 0;
-  }
-  return -1;
+  return triplet::write_triplets(ofs, ts);
 }
 
-int sort_write_triplets(const std::string& fname,
-                        std::vector<triplet::triplet> ts) {
+bool sort_write_triplets(const std::string& fname,
+                         std::vector<triplet::triplet>& ts) {
   std::sort(ts.begin(), ts.end(),
             [](const auto& t_a, const auto& t_b) { return t_a.mz < t_b.mz; });
 
-  std::ofstream ofs{fname, std::ios::binary};
-  if (triplet::write_triplets(ofs, ts)) {
-    return 0;
-  }
-  return -1;
+  return write_triplets(fname, ts);
 }
 
 std::vector<triplet::triplet> read_triplets(const std::string& fname) {
@@ -43,10 +37,28 @@ std::vector<triplet::triplet> read_triplets(const std::string& fname) {
 }
 
 std::vector<triplet::triplet> get_triplets_range(const std::string& fname,
-                                                 double begin,
-                                                 double end) {
+                                                 double begin, double end) {
   std::ifstream ifs{fname, std::ios::binary};
   return triplet::get_range(ifs, begin, end);
+}
+
+bool spectra_to_triplets(const std::string& fname,
+                         const std::vector<warp::peak_vec>& spectra) {
+  size_t n_triplets =
+      std::accumulate(spectra.begin(), spectra.end(), size_t{0},
+                      [](size_t n, const auto& s) { return n + s.size(); });
+
+  std::vector<triplet::triplet> ts;
+  ts.reserve(n_triplets);
+
+  for (const auto& s : spectra) {
+    for (const auto& p : s) {
+      ts.emplace_back(
+          triplet::triplet{p.id, p.mz, static_cast<float>(p.height)});
+    }
+  }
+
+  return sort_write_triplets(fname, ts);
 }
 
 /* ------ bindings to warp functions and data structures ------ */
@@ -54,8 +66,7 @@ std::vector<triplet::triplet> get_triplets_range(const std::string& fname,
 // Compute warping surface for peak lists and warping nodes
 std::vector<double> compute_warping_surf(
     const std::vector<warp::peak>& peaks_src,
-    const std::vector<warp::peak>& peaks_ref,
-    const warp::node& node_left,
+    const std::vector<warp::peak>& peaks_ref, const warp::node& node_left,
     const warp::node& node_right) {
   return warp::compute_warping_surf(peaks_src, peaks_ref, node_left,
                                     node_right);
@@ -64,17 +75,14 @@ std::vector<double> compute_warping_surf(
 // Compute warping surface for a list of matched peaks and warping nodes
 std::vector<double> compute_warping_surf_pairs(
     const std::vector<std::pair<warp::peak, warp::peak>>& peaks_pairs,
-    const warp::node& node_left,
-    const warp::node& node_right) {
+    const warp::node& node_left, const warp::node& node_right) {
   return warp::compute_warping_surf(peaks_pairs, node_left, node_right);
 }
 
 // TODO: unfinished interface to RANSAC
 warp::ransac_result ransac(
     const std::vector<std::vector<warp::peak_pair>>& peak_pairs,
-    const std::vector<warp::node>& warping_nodes,
-    size_t n_iterations,
-    size_t m,
+    const std::vector<warp::node>& warping_nodes, size_t n_iterations, size_t m,
     double distance_threshold) {
   if ((peak_pairs.size() + 1) != warping_nodes.size()) {
     return {{}, {}};
@@ -83,7 +91,6 @@ warp::ransac_result ransac(
   return warp::ransac(peak_pairs, warping_nodes, n_iterations, m,
                       distance_threshold);
 }
-
 
 }  // namespace python_api
 
@@ -103,12 +110,10 @@ PYBIND11_MODULE(msiwarp, m) {
   /* ---- python bindings to utility functions ---- */
   m.def("write_triplets", &python_api::write_triplets, R"pbdoc(
             write triplets (index, mz, height) to binary file
-            Some other explanation about the subtract function.
         )pbdoc");
 
   m.def("sort_write_triplets", &python_api::sort_write_triplets, R"pbdoc(
             sort triplets by m/z and then write them to binary file
-            Some other explanation about the subtract function.
         )pbdoc");
 
   m.def("read_triplets", &python_api::read_triplets, R"pbdoc(
@@ -117,6 +122,10 @@ PYBIND11_MODULE(msiwarp, m) {
 
   m.def("get_triplets_range", &python_api::get_triplets_range, R"pbdoc(
             get all triplets within range (triplets must be sorted by m/z)
+        )pbdoc");
+
+  m.def("spectra_to_triplets", &python_api::spectra_to_triplets, R"pbdoc(
+            sort and write all peaks from list of spectra to file
         )pbdoc");
 
   py::class_<triplet::triplet>(m, "msi_triplet")

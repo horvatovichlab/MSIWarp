@@ -34,7 +34,7 @@ spectra = [get_mx_spectrum(fpath_sbd, meta, i, sigma_1, instrument_type) for i i
 tic = np.array([m[2] for m in meta])
 
 
-# ---------- find peak dense regions across data set spectra ----------
+# ---------- find peak dense regions across data set spectra to place warping nodes ----------
 xi = np.linspace(mz_begin, mz_end, 2000)
 (yi, xp, yp) = peak_density_mz(spectra, xi, bandwidth=15, stride=100)
 
@@ -78,10 +78,8 @@ print("warped spectra in {:0.2f}s".format(t3 - t2))
 
 
 # ---------- save warped spectra as MSI triplets ----------
-triplets_warped = spectra_to_triplet(warped_spectra)
-if mx.sort_write_triplets(fpath_triplets_warped, triplets_warped) == 0:
-    print("wrote {} triplets to file".format(len(triplets_warped)))
-
+if mx.spectra_to_triplets(fpath_triplets_warped, warped_spectra):
+    print("wrote triplets to file")
 
 
 # ---------- plot mass scatter around mean spectrum peaks ----------
