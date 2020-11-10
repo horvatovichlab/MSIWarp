@@ -45,9 +45,9 @@ import msiwarp as mx
 from pyimzml.ImzMLParser import ImzMLParser
 from msiwarp.util.warp import to_mx_peaks
 
+p = ImzMLParser(imzml_path)
 spectra = []
 
-p = ImzMLParser(imzml_path)
 for idx, coords in enumerate(p.coordinates):
     mzs, hs = p.getspectrum(idx)    
     spectra.append(to_mx_peaks(mzs, hs,
