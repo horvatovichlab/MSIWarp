@@ -1,16 +1,17 @@
 # MSIWarp
+**MSIWarp** is a flexible tool to perform mass alignment of Mass Spectrometry Imaging (MSI) spectra.  
+
 
 ## Installation
-This project depends on Numpy, Matplotlib, pyimzml (to interact with imzML files)
-
-To build the MSIWarp Python package, cmake, a C++17 compliant compiler, and python 3 (version?) must be installed
-
-To build the project, open a terminal in the root folder and type
+To build the project, open a terminal in the root folder and type:
 ```
 python3 setup.py install --user
 ```
+To build the MSIWarp Python package, cmake, a C++17 compliant compiler, and python 3 (version?) must be installed. Furthermore, this project depends on Numpy, Matplotlib, and PyimzML (to interact with imzML files)
 
-## Aligning a data set
+
+
+## Quick start
 
 MSIWarp models a spectrum as a list of peaks, where each peak has the following four attributes: 
 1. spectrum index
@@ -103,15 +104,15 @@ if mx.spectra_to_triplets(fpath_triplets_raw, spectra):
 fpath_triplets_warped = "..."
 if mx.spectra_to_triplets(fpath_triplets_warped, warped_spectra):
     print("wrote warped MSI triplets to file")
-
-from msiwarp.util.warp import plot_range
-
-mz_ref = np.sort(to_mz(mx.peaks_top_n(s_r, 3)))
-mass_tolerance = 3
 ```
 which enables fast queries of all data set peaks within a mass range. After generating our triplet files, we can easily plot mass scatters:
 
 ```python
+from msiwarp.util.warp import plot_range
+
+mz_ref = [281.249, 885.553, 886.556] # m/z locations of 
+mass_tolerance = 3 # ppm
+
 fig, ax = plt.subplots(1, 3, figsize=(12,4), sharey=True)
 
 for i, mz_i in enumerate(mz_ref):
