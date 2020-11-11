@@ -111,8 +111,8 @@ which enables fast queries of all data set peaks within a mass range. After gene
 ```python
 from msiwarp.util.warp import plot_range
 
-mz_ref = [...] # m/z locations of 
-mass_tolerance = 3
+mz_ref = [281.249, 885.553, 886.556] # m/z locations of 
+mass_tolerance = 3 # ppm
 
 fig, ax = plt.subplots(1, 3, figsize=(12,4), sharey=True)
 
