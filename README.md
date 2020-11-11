@@ -1,4 +1,6 @@
 # MSIWarp
+**MSIWarp** is a flexible tool to perform mass alignment of Mass Spectrometry Imaging (MSI) spectra.  
+
 
 ## Installation
 This project depends on Numpy, Matplotlib, pyimzml (to interact with imzML files)
@@ -10,7 +12,7 @@ To build the project, open a terminal in the root folder and type
 python3 setup.py install --user
 ```
 
-## Aligning a data set
+## Quick start
 
 MSIWarp models a spectrum as a list of peaks, where each peak has the following four attributes: 
 1. spectrum index
