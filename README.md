@@ -7,7 +7,7 @@ This project depends on Numpy, Matplotlib, pyimzml (to interact with imzML files
 
 To build the MSIWarp Python package, cmake, a C++17 compliant compiler, and python 3 (version?) must be installed
 
-To build the project, open a terminal in the root folder and type
+To build the project, open a terminal in the root folder and type:
 ```
 python3 setup.py install --user
 ```
