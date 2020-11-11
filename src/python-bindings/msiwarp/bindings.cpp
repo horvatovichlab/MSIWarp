@@ -11,7 +11,7 @@
 
 namespace python_api {
 
-/* ------ bindings to read/write functions of binary data ------ */
+/* ------ bindings to read/write of binary data ------ */
 
 bool write_triplets(const std::string& fname,
                     const std::vector<triplet::triplet>& ts) {

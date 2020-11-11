@@ -3,19 +3,24 @@
 
 import msiwarp as mx
 
+from msiwarp.util.read_sbd import read_sbd_meta, read_spectrum_fs
 from msiwarp.util.warp import to_mx_peaks, to_mz, to_height, peak_density_mz
-from msiwarp.util.warp import generate_mean_spectrum, plot_range
+from msiwarp.util.warp import spectra_to_triplet, plot_range, get_mx_spectrum
+from msiwarp.util.warp import generate_mean_spectrum
 
 import matplotlib.pyplot as plt
 import numpy as np
 
 
-# ----------------- setup -----------
-fdir = 'datasets/orbitrap-desi/'
+# ----------------- load spectra and meta data
+sigma_1 = 3.0e-7
+epsilon = 1.0
 
-imzml_path = fdir + 'A67 CT S4-centroid.imzML'
-fpath_triplets_raw = fdir + 'orbitrap_desi_triplets_raw.dat'
-fpath_triplets_warped = fdir + 'orbitrap_desi_triplets_warped.dat'
+fdir = 'datasets/orbitrap-liver/'
+
+fpath_sbd = fdir + '5mixes_onratliver_50micron-centroided.sbd'
+fpath_triplets_raw = fdir + 'orbitrap_liver_triplets_raw.dat'
+fpath_triplets_warped = fdir + 'orbitrap_liver_triplets_warped.dat'
 fpath_dispersion_csv = fdir + 'results/dispersion_100.csv'
 fpath_scatter = fdir + 'results/scatter'
 
@@ -24,29 +29,10 @@ instrument_type = 'orbitrap'
 mz_begin = 150
 mz_end = 1000
 
-# setup parameters
-sigma_1 = 3.0e-7
-epsilon = 1.0
+meta = read_sbd_meta(fpath_sbd)
+spectra = [get_mx_spectrum(fpath_sbd, meta, i, sigma_1, instrument_type) for i in range(len(meta))]
+tic = np.array([m[2] for m in meta])
 
-n_steps = 33 # the slack of a warping node is +- (n_steps * s * sigma @ the node's m/z)
-s = 2 * epsilon / n_steps 
-
-# ----------------- load spectra and meta data
-from pyimzml.ImzMLParser import ImzMLParser
-from msiwarp.util.warp import to_mx_peaks
-
-p = ImzMLParser(imzml_path)
-spectra = []
-
-for idx, coords in enumerate(p.coordinates):
-    mzs, hs = p.getspectrum(idx)    
-    spectra.append(to_mx_peaks(mzs, hs,
-                               sigma_1, id = idx,
-                               instrument_type = 'orbitrap'))
-
-
-tic = np.array([np.sum(to_height(s_i)) for s_i in spectra])
-n_peaks = np.array([len(s_i) for s_i in spectra])
 
 # ---------- find peak dense regions across data set spectra to place warping nodes ----------
 xi = np.linspace(mz_begin, mz_end, 2000)
@@ -56,7 +42,11 @@ xi = np.linspace(mz_begin, mz_end, 2000)
 node_mzs = (xp[:-1] + xp[1:]) / 2
 node_mzs = np.array([mz_begin, *node_mzs, mz_end])
 
-node_deltas = np.array([s * sigma_1 * mz ** (3/2)  for mz in node_mzs])
+# setup warping parameters 
+n_steps = 33 # the slack of a warping node is +- (n_steps * s * sigma @ the node's m/z)
+s = 2 * epsilon / n_steps 
+
+node_deltas = np.array([s * sigma_1 * mz ** (3/2)  for mz in node_mzs]) 
 nodes = mx.initialize_nodes(node_mzs, node_deltas, n_steps)
 
 
@@ -71,6 +61,7 @@ s_r = sorted(s_m_1000, key=lambda peak: peak.mz)
 
 s_m_100 = mx.peaks_top_n(s_m, 100)
 mz_ref = np.sort(to_mz(s_m_100))
+
 
 # ---------- warp spectra ----------
 print("warping spectra...")
@@ -96,7 +87,7 @@ if mx.spectra_to_triplets(fpath_triplets_warped, warped_spectra):
 
 
 # ---------- plot mass scatter around mean spectrum peaks ----------
-mass_tolerance = 4 # ppm
+mass_tolerance = 5 # ppm
 
 import os
 
@@ -138,7 +129,7 @@ for i, mz_i in enumerate(mz_ref):
     ts_raw = mx.get_triplets_range(fpath_triplets_raw, mz0, mz1)
     ts_warped = mx.get_triplets_range(fpath_triplets_warped, mz0, mz1)
     
-    q = 0.0 # remove background signal
+    q = 0.25 # remove background signal
     if len(ts_raw) > 0:
         dispersion_raw[i] = dispersion_triplets(ts_raw,  q)
     if len(ts_warped) > 0:  
