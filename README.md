@@ -105,15 +105,15 @@ if mx.spectra_to_triplets(fpath_triplets_raw, spectra):
 fpath_triplets_warped = "..."
 if mx.spectra_to_triplets(fpath_triplets_warped, warped_spectra):
     print("wrote warped MSI triplets to file")
-
-from msiwarp.util.warp import plot_range
-
-mz_ref = np.sort(to_mz(mx.peaks_top_n(s_r, 3)))
-mass_tolerance = 3
 ```
 which enables fast queries of all data set peaks within a mass range. After generating our triplet files, we can easily plot mass scatters:
 
 ```python
+from msiwarp.util.warp import plot_range
+
+mz_ref = [...] # m/z locations of 
+mass_tolerance = 3
+
 fig, ax = plt.subplots(1, 3, figsize=(12,4), sharey=True)
 
 for i, mz_i in enumerate(mz_ref):
