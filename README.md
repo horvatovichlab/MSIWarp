@@ -1,5 +1,5 @@
 # MSIWarp
-**MSIWarp** is a flexible tool to perform mass alignment of Mass Spectrometry Imaging (MSI) spectra.  
+**MSIWarp** is a flexible tool to perform mass alignment of Mass Spectrometry Imaging (MSI) spectra. A key feature of MSIWarp is its compatibility with centroid spectra.
 
 
 ## Installation
@@ -7,7 +7,7 @@ To build the project, open a terminal in the root folder and type:
 ```
 python3 setup.py install --user
 ```
-To build the MSIWarp Python package, cmake, a C++17 compliant compiler, and python 3 (version?) must be installed. Furthermore, this project depends on Numpy, Matplotlib, and PyimzML (to interact with imzML files)
+To build the MSIWarp Python package, cmake, a C++17 compliant compiler, and Python 3 must be installed. This project depends on Numpy, Matplotlib, and pyimzML (to interact with imzML files).
 
 
 
@@ -36,7 +36,7 @@ The slack is equal to the number of steps times the step size (node delta)
 ```python
 nodes = mx.initialize_nodes(node_mzs, node_deltas, n_steps)
 ```
-### Interfacing with pyimzml (https://github.com/alexandrovteam/pyimzML)
+### Interfacing with pyimzml [pyimzML!](https://github.com/alexandrovteam/pyimzML)
 
 Load a centroided imzML data set into RAM:
 
