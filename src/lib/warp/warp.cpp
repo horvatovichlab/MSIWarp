@@ -103,6 +103,7 @@ node_vec init_nodes(const vector<double>& mzs,
                     uint32_t n_steps) {
   size_t n_nodes = mzs.size();
   node_vec nodes;
+  nodes.reserve(n_nodes);
 
   // All possible moves (contraints in the warping function can be added here)
   for (size_t i = 0; i < n_nodes; ++i) {

@@ -7,6 +7,9 @@
 namespace warp {
 
 /* */
+enum class instrument { TOF, Orbitrap, FT_ICR, Quadrupole };
+
+/* */
 struct peak {
   uint32_t id;
   double mz;

@@ -8,6 +8,7 @@
 
 #include "util/msi_triplet.hpp"
 #include "warp/warp.hpp"
+#include "warp/warp_util.hpp"
 
 namespace python_api {
 
@@ -210,6 +211,13 @@ PYBIND11_MODULE(msiwarp, m) {
         Get all overlapping peak pairs between s_a and s_b. Peaks must be sorted by m/z.
     )pbdoc");
 
+  py::enum_<warp::instrument>(m, "Instrument")
+      .value("TOF", warp::instrument::TOF)
+      .value("Orbitrap", warp::instrument::Orbitrap)
+      .value("FT-ICR", warp::instrument::FT_ICR)
+      .value("Quadrupole", warp::instrument::Quadrupole)
+      .export_values();
+
   py::class_<warp::peak>(m, "peak")
       .def_readonly("id", &warp::peak::id)
       .def_readonly("mz", &warp::peak::mz)
@@ -233,6 +241,31 @@ PYBIND11_MODULE(msiwarp, m) {
                std::to_string(n.mz_shifts.front()) + ", " +
                std::to_string(n.mz_shifts.back()) + "]>";
       });
+
+  /* ---- python bindings to warp::util functions ---- */
+  py::class_<warp::util::node_params>(m, "node_params")
+      .def_readonly("instrument", &warp::util::node_params::inst)
+      .def_readonly("n_steps", &warp::util::node_params::n_steps)
+      .def_readonly("n_peaks", &warp::util::node_params::n_peaks)
+      .def_readonly("max_nodes", &warp::util::node_params::max_nodes)
+      .def_readonly("mz_begin", &warp::util::node_params::mz_begin)
+      .def_readonly("mz_end", &warp::util::node_params::mz_end)
+      .def_readonly("slack", &warp::util::node_params::slack)
+      .def(py::init<warp::instrument, size_t, size_t, size_t, double, double,
+                    double>())
+      .def("__repr__", [](const warp::ransac_result& rr) {
+        return "parameters for node placement function";
+      });
+
+  m.def("get_warping_nodes_uniform", &warp::util::get_warping_nodes_uniform,
+        R"pbdoc(
+        Place warping nodes so that all segments have the same number of peak mathces.
+    )pbdoc");
+
+  m.def("find_optimal_warpings_uni", &warp::util::find_optimal_warpings_uni,
+        R"pbdoc(
+        TODO: add documentation.
+    )pbdoc");
 
   py::class_<warp::ransac_result>(m, "ransac_result")
       .def_readonly("errors", &warp::ransac_result::errors)

@@ -20,7 +20,7 @@ epsilon = 2.55
 
 print("using spectrum {} as reference, sigma: {} ppm, and epsilon: {:0.2f} ppm".format(i_r, sigma_1 * 1e6, 2 * epsilon * sigma_1 * 1e6))
 
-fdir = 'datasets/tof-mouse-kidney/'
+fdir = 'datasets/tof-kidney/'
 
 fpath_sbd = fdir + '50um_sample_3neg-centroided-snr.sbd'
 fpath_triplets_raw = fdir + 'triplets_raw.dat'

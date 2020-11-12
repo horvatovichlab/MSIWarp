@@ -26,6 +26,7 @@ add_library(warplib
     "${CMAKE_CURRENT_SOURCE_DIR}/src/lib/util/serialization.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/lib/util/msi_triplet.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/lib/warp/warp.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/lib/warp/warp_util.cpp"
     )
 target_include_directories(warplib PUBLIC src/lib)
 target_link_libraries(warplib ${CMAKE_THREAD_LIBS_INIT})
