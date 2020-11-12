@@ -36,9 +36,9 @@ The slack is equal to the number of steps times the step size (node delta)
 ```python
 nodes = mx.initialize_nodes(node_mzs, node_deltas, n_steps)
 ```
-### Interfacing with pyimzml [pyimzML!](https://github.com/alexandrovteam/pyimzML)
 
-Load a centroided imzML data set into RAM:
+### Align a data set in the imzML format
+Load a centroided imzML data set into RAM using [pyimzML](https://github.com/alexandrovteam/pyimzML):
 
 ```python
 import msiwarp as mx
