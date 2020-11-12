@@ -3,11 +3,16 @@
 
 
 ## Installation
-To build the project, open a terminal in the root folder and type:
+Clone the repository:
+```
+git clone --recursive https://github.com/horvatovichlab/MSIWarp.git
+```
+and build the project:
 ```
 python3 setup.py install --user
 ```
-To build the MSIWarp Python package, cmake, a C++17 compliant compiler, and Python 3 must be installed. This project depends on Numpy, Matplotlib, and pyimzML (to interact with imzML files).
+
+cmake, a C++17 compliant compiler, and Python 3 must be installed to build MSIWarp. Furthermore, this project depends on the python packages Numpy, Matplotlib, and pyimzML (to interact with imzML files).
 
 
 
