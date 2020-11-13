@@ -1,7 +1,6 @@
 # MSIWarp
 **MSIWarp** is a flexible tool to perform mass alignment of Mass Spectrometry Imaging (MSI) spectra. A key feature of MSIWarp is its compatibility with centroid spectra.
 
-
 ## Installation
 Clone the repository:
 ```
@@ -15,29 +14,26 @@ in the root directory of the project.
 
 CMake, a C++17 compliant compiler, and Python 3 must be installed to build MSIWarp. Furthermore, this project depends on the python packages Numpy, Matplotlib, and pyimzML (to interact with imzML files).
 
-
-
 ## Quick start
-The following lines of code align a list of spectra:
+The following script aligns a list of spectra:
 ```python
 import msiwarp as mx
 
-# load the unaligned spectra and set a reference spectrum
-spectra = [...]
-reference_spectrum = spectra[ref_index]
+spectra =  ... # code to load the unaligned spectra
+reference_spectrum =  ... 
 
 # setup the node placement parameters
 params = mx.params_uniform(...)
 epsilon = 1.0 # peak matching threshold, relative to peak width
 n_cores = 4
 
-# find the optimal warpings using one of the automatic node placement functions
-warping_funcs = mx.find_optimal_warpings_uni(spectra, reference_spectrum, params, epsilon, n_cores)
+# find a m/z recalibration function for each spectrum
+recal_funcs = mx.find_optimal_warpings_uni(spectra, reference_spectrum, params, epsilon, n_cores)
 
-# warp the spectra
-warped_spectra = [mx.warp_peaks_unique(s_i, r_i) for (s_i, r_i) in zip(spectra, warping_funcs)
+# use recalibration functions to warp the spectra
+warped_spectra = [mx.warp_peaks_unique(s_i, r_i) for (s_i, r_i) in zip(spectra, recal_funcs)
 
-# ... code to store the warping spectra
+# ... code to store the warped spectra
 
 ```
 
@@ -84,7 +80,6 @@ params = mx.params_uniform(mx.Instrument.Orbitrap, # each instrument type has it
                            slack # the slack relative to peak width
                            )
 ```
-
 
 ## Example: align a centroid data set in the imzML format
 Load a centroided imzML data set into RAM using [pyimzML](https://github.com/alexandrovteam/pyimzML):
