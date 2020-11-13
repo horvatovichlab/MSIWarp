@@ -18,15 +18,38 @@ CMake, a C++17 compliant compiler, and Python 3 must be installed to build MSIWa
 
 
 ## Quick start
+The following lines of code align a list of spectra:
+```python
+import msiwarp as mx
 
-MSIWarp models a spectrum as a list of peaks, where each peak has the following four attributes: 
+# load the unaligned spectra and set a reference spectrum
+spectra = [...]
+reference_spectrum = spectra[ref_index]
+
+# setup the node placement parameters
+params = mx.params_uniform(...)
+epsilon = 1.0 # peak matching threshold, relative to peak width
+n_cores = 4
+
+# find the optimal warpings using one of the automatic node placement functions
+warping_funcs = mx.find_optimal_warpings_uni(spectra, reference_spectrum, params, epsilon, n_cores)
+
+# warp the spectra
+warped_spectra = [mx.warp_peaks_unique(s_i, r_i) for (s_i, r_i) in zip(spectra, warping_funcs)
+
+# ... code to store the warping spectra
+
+```
+
+## Details
+MSIWarp models a spectrum as a list of peaks ordered by *m/z*, where each peak has the following four attributes: 
 1. spectrum index
-2. m/z
+2. *m/z*
 3. height
 4. sigma, the modelled width of the peak
 
 ### Initializing an MSIWarp spectrum
-We can initialize an MSIWarp spectrum from a list of m/z and intensity values:
+We can initialize an MSIWarp spectrum from a list of *m/z* and intensity values:
 ```python
 import numpy as np
 mzs = np.array([...]) # peak m/z values
@@ -37,16 +60,33 @@ s = [mx.peak(i, mz_i, h_i, 1.0) for i, (mz_i, h_i) in enumerate(zip(mzs, hs))]
 ```
 
 ### Setting up the warping nodes
-There are two fundamental choices for placing the warping nodes: (i) use the same warping nodes for all spectra, or (ii) place the warping nodes uniquely for each spectrum. If we choose (i), we must setup the warping nodes prior to searching for the optimal aligments. If we choose (ii), we must select a node placement method and set provide the corresponding parameters. 
+A warping node has three parameters: an m/z position, a slack, and the number of evaluation points within the slack. The slack and the number of evaluation points determine the search space of the warping function and its resolution, respectively.
 
-A warping node has three parameters: an m/z position, a slack, and a number of evaluation points. 
+There are two fundamental options for warping node placement: (i) use the same warping nodes for all spectra, or (ii) place the warping nodes uniquely for each spectrum. If we choose (i), we must setup the warping nodes prior to searching for the optimal aligments. If we choose (ii), we must select a node placement method and set provide the corresponding parameters. 
 
-slack is equal to the number of steps times the step size (node delta)
+The following code will initialize four warping nodes between 150 and 1050 *m/z*. 
 ```python
+node_mzs = [150, 450, 750, 1050]
+node_deltas = [0.015, 0.045, 0.075, 0.105] # slacks = node_deltas * n_steps
+n_steps = 25 
 nodes = mx.initialize_nodes(node_mzs, node_deltas, n_steps)
 ```
 
-### Align a data set in the imzML format
+If we chose the second option, we can use either the density-based node placement function or the ... function.
+```
+# setup the parameters for the uniform node placement function
+params = mx.params_uniform(mx.Instrument.Orbitrap, # each instrument type has its own relationship between peak width and m/z
+                           n_steps, # same as above
+                           n_peaks, # the number of peaks per segment
+                           max_n_nodes, # maximum number of nodes
+                           mz_begin, # 
+                           mz_end, #
+                           slack # the slack relative to peak width
+                           )
+```
+
+
+## Example: align a centroid data set in the imzML format
 Load a centroided imzML data set into RAM using [pyimzML](https://github.com/alexandrovteam/pyimzML):
 
 ```python
