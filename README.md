@@ -35,10 +35,13 @@ hs = np.array([...]) # peak heights
 import msiwarp as mx
 s = [mx.peak(i, mz_i, h_i, 1.0) for i, (mz_i, h_i) in enumerate(zip(mzs, hs))]
 ```
-To search for an optimal warping between a pair of spectra we have to provide a set of warping nodes.
 
 ### Setting up the warping nodes
-The slack is equal to the number of steps times the step size (node delta)
+There are two fundamental choices for placing the warping nodes: (i) use the same warping nodes for all spectra, or (ii) place the warping nodes uniquely for each spectrum. If we choose (i), we must setup the warping nodes prior to searching for the optimal aligments. If we choose (ii), we must select a node placement method and set provide the corresponding parameters. 
+
+A warping node has three parameters: an m/z position, a slack, and a number of evaluation points. 
+
+slack is equal to the number of steps times the step size (node delta)
 ```python
 nodes = mx.initialize_nodes(node_mzs, node_deltas, n_steps)
 ```
