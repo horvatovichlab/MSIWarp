@@ -9,6 +9,10 @@ namespace warp {
 /* */
 enum class instrument { TOF, Orbitrap, FT_ICR, Quadrupole };
 
+/* piecewise linear recalibration function composed of the m/z and m/z shift for
+ * each warping node */
+using recalibration_function = std::vector<std::pair<double, double>>;
+
 /* */
 struct peak {
   uint32_t id;
@@ -26,7 +30,7 @@ struct node {
 
 // TODO: add struct for warp parameters ?
 
-/* */
+/* TODO: put ransac structures and functions in separate file */
 struct ransac_params {
   size_t n_segments;
   size_t n_iterations;
@@ -37,7 +41,7 @@ struct ransac_params {
   double mz_end;
 };
 
-/* */
+/* TODO: put ransac structures and functions in separate file */
 struct ransac_result {
   std::vector<double> errors;
   std::vector<std::vector<bool>> inliers;
@@ -64,18 +68,26 @@ std::vector<std::vector<size_t>> find_optimal_warpings(
     const node_vec& nodes,
     double epsilon);
 
-/* align a list of spectra to reference spectrum, s_r, with RANSAC */
+/* TODO: put ransac structures and functions in separate file. align a list
+   of spectra to reference spectrum, s_r, with RANSAC */
 std::vector<std::pair<ransac_result, node_vec>> align_ransac(
     const std::vector<peak_vec>& spectra,
     const peak_vec s_r,
     const ransac_params& params);
 
-/* warp peak masses with piecewise linear interpolation between pairs of shifted warping nodes */
+/* warp peak masses with piecewise linear interpolation between pairs of shifted
+   warping nodes */
 peak_vec warp_peaks(const peak_vec& peaks,
                     const node_vec& nodes,
                     const std::vector<size_t>& moves);
 
-/* the search space of each warping node is its original mz +- its sigma times n_steps  */
+/* warp peak masses with piecewise linear interpolation between pairs of shifted
+   warping nodes */
+peak_vec warp_peaks_unique(const peak_vec& peaks,
+                           const recalibration_function& recal_func);
+
+/* the search space of each warping node is its original mz +- its sigma times
+ * n_steps  */
 node_vec init_nodes(const std::vector<double>& mzs,
                     const std::vector<double>& sigmas,
                     uint32_t n_steps);
@@ -84,7 +96,7 @@ node_vec init_nodes(const std::vector<double>& mzs,
 peak_vec peaks_between(const peak_vec& peaks, double mz_begin, double mz_end);
 
 /* Pairs of matched peaks between bounds. Second peak in pair is assumed to be
- * warped. */
+   warped. */
 std::vector<peak_pair> peak_pairs_between(const std::vector<peak_pair>& peaks,
                                           double mz_begin,
                                           double mz_end);

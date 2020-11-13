@@ -73,22 +73,34 @@ vector<vector<size_t>> find_optimal_warpings(const vector<peak_vec>& spectra,
 peak_vec warp_peaks(const peak_vec& peaks,
                     const node_vec& nodes,
                     const std::vector<size_t>& moves) {
-  size_t n = nodes.size();
+    size_t n = nodes.size();
+    
+    recalibration_function recal_func(n);    
+    for (size_t i = 0; i < n; ++i) {
+      recal_func[i] = {nodes[i].mz, nodes[i].mz_shifts[moves[i]]};
+    }
 
+    return warp_peaks_unique(peaks, recal_func);
+}
+
+peak_vec warp_peaks_unique(const peak_vec& peaks,
+                           const recalibration_function& recal_func) {
   peak_vec warped_peaks;
   warped_peaks.reserve(peaks.size());
 
-  for (size_t i = 0; i < n - 1; ++i) {
-    node left = nodes[i];
-    node right = nodes[i + 1];
+  for (size_t i = 0; i < recal_func.size() - 1; ++i) {
+    const auto& left = recal_func[i];
+    const auto& right = recal_func[i + 1];
 
-    double mz_delta_left = left.mz_shifts[moves[i]];
-    double mz_delta_right = right.mz_shifts[moves[i + 1]];
+    double mz_left = left.first;
+    double mz_right = right.first;
+    double mz_delta_left = left.second;
+    double mz_delta_right = right.second;
 
-    peak_vec peaks_i = peaks_between(peaks, left.mz, right.mz);
+    peak_vec peaks_i = peaks_between(peaks, mz_left, mz_right);
     peak_vec peaks_warped_i =
-        interpolate_peaks(peaks_i, left.mz, right.mz, left.mz + mz_delta_left,
-                          right.mz + mz_delta_right);
+        interpolate_peaks(peaks_i, mz_left, mz_right, mz_left + mz_delta_left,
+                          mz_right + mz_delta_right);
 
     for (const auto& p_w : peaks_warped_i) {
       warped_peaks.push_back(p_w);

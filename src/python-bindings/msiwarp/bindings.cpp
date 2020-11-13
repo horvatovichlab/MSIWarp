@@ -155,6 +155,10 @@ PYBIND11_MODULE(msiwarp, m) {
         Warp peaks with fixed warping nodes and optimal moves.
     )pbdoc");
 
+  m.def("warp_peaks_unique", &warp::warp_peaks_unique, R"pbdoc(
+        Warp peaks with fixed warping nodes and optimal moves.
+    )pbdoc");
+
   m.def("initialize_nodes", &warp::init_nodes, R"pbdoc(
         Initializes warping nodes. Warping will be performed
          between each pair of nodes.
@@ -243,17 +247,17 @@ PYBIND11_MODULE(msiwarp, m) {
       });
 
   /* ---- python bindings to warp::util functions ---- */
-  py::class_<warp::util::node_params>(m, "node_params")
-      .def_readonly("instrument", &warp::util::node_params::inst)
-      .def_readonly("n_steps", &warp::util::node_params::n_steps)
-      .def_readonly("n_peaks", &warp::util::node_params::n_peaks)
-      .def_readonly("max_nodes", &warp::util::node_params::max_nodes)
-      .def_readonly("mz_begin", &warp::util::node_params::mz_begin)
-      .def_readonly("mz_end", &warp::util::node_params::mz_end)
-      .def_readonly("slack", &warp::util::node_params::slack)
+  py::class_<warp::util::params_uniform>(m, "params_uniform")
+      .def_readonly("instrument", &warp::util::params_uniform::inst)
+      .def_readonly("n_steps", &warp::util::params_uniform::n_steps)
+      .def_readonly("n_peaks", &warp::util::params_uniform::n_peaks)
+      .def_readonly("max_nodes", &warp::util::params_uniform::max_nodes)
+      .def_readonly("mz_begin", &warp::util::params_uniform::mz_begin)
+      .def_readonly("mz_end", &warp::util::params_uniform::mz_end)
+      .def_readonly("slack", &warp::util::params_uniform::slack)
       .def(py::init<warp::instrument, size_t, size_t, size_t, double, double,
                     double>())
-      .def("__repr__", [](const warp::ransac_result& rr) {
+      .def("__repr__", [](const warp::util::params_uniform& p) {
         return "parameters for node placement function";
       });
 

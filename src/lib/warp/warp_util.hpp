@@ -5,10 +5,13 @@
 
 namespace warp::util {
 
-using recalibration_function = std::vector<std::pair<double, double>>;
-
-/* parameters for uniquely placed nodes */
-struct node_params {
+/* Parameters for uniform node placement. Nodes are placed so that all segments
+ * contain the same number of peaks. The parameter 'n_peaks' is the lower bound
+ * for the number of peaks per segment. If the number of peak matches is
+ * greater than 'n_peaks' * 'max_nodes', the number of peaks is equal to the
+ * number of peak matches divided by 'max_nodes'. Slack increases with m/z.
+ */
+struct params_uniform {
   instrument inst;
   size_t n_steps;
   size_t n_peaks;
@@ -18,28 +21,36 @@ struct node_params {
   double slack;
 };
 
-/* TODO: move this to warp.hpp / warp.cpp */   
+/* Parameters for density-based node placement. */
+struct params_density {
+  instrument inst;
+  double bandwidth;
+  double threshold;
+  double mz_begin;
+  double mz_end;
+  double slack;  
+  size_t n_steps;
+};
+
+/* TODO: move this to warp.hpp / warp.cpp */
 double get_mz_scaling(double mz, instrument inst);
 
 /* */
 node_vec get_warping_nodes_uniform(const std::vector<peak_pair>& ps,
-                                   const node_params& params);
+                                   const params_uniform& params);
 
 /* */
 node_vec get_warping_nodes_density(const std::vector<peak_pair>& ps,
-                                   double sigma_1,
-                                   double epsilon,
-                                   size_t n_steps,
-                                   instrument inst);
+                                   const params_density& params);
 
 /* */
 std::vector<recalibration_function> find_optimal_warpings_uni(
     const std::vector<peak_vec>& spectra,
     const peak_vec& s_ref,
-    const node_params& params,
+    const params_uniform& params,
     double epsilon,
     size_t n_cores);
 
-} // namespace warp::util
+}  // namespace warp::util
 
-#endif // WARP_UTIL_HPP
+#endif  // WARP_UTIL_HPP
