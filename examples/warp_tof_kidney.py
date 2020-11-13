@@ -72,9 +72,11 @@ print("warped spectra in {:0.2f}s".format(t3 - t2))
 
 
 # ---------- save warped spectra as MSI triplets ----------
-triplets_warped = spectra_to_triplet(warped_spectra)
-if mx.sort_write_triplets(fpath_triplets_warped, triplets_warped) == 0:
-    print("wrote {} triplets to file".format(len(triplets_warped)))
+if mx.spectra_to_triplets(fpath_triplets_raw, spectra):
+    print("wrote raw triplets to file")
+
+if mx.spectra_to_triplets(fpath_triplets_warped, warped_spectra):
+    print("wrote warped triplets to file")
 
 
 # ---------- mean spectrum ----------
