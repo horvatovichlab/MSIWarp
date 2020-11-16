@@ -80,18 +80,19 @@ std::vector<double> compute_warping_surf_pairs(
   return warp::compute_warping_surf(peaks_pairs, node_left, node_right);
 }
 
-// TODO: unfinished interface to RANSAC
-warp::ransac_result ransac(
-    const std::vector<std::vector<warp::peak_pair>>& peak_pairs,
-    const std::vector<warp::node>& warping_nodes, size_t n_iterations, size_t m,
-    double distance_threshold) {
-  if ((peak_pairs.size() + 1) != warping_nodes.size()) {
-    return {{}, {}};
-  }
+// // TODO: unfinished interface to RANSAC
+// warp::ransac_result ransac(
+//     const std::vector<std::vector<warp::peak_pair>>& peak_pairs,
+//     const std::vector<warp::node>& warping_nodes, size_t n_iterations, size_t m,
+//     double distance_threshold) {
+//   if ((peak_pairs.size() + 1) != warping_nodes.size()) {
+//     return {{}, {}};
+//   }
+//   return {{}, {}};
 
-  return warp::ransac(peak_pairs, warping_nodes, n_iterations, m,
-                      distance_threshold);
-}
+//   return warp::ransac(peak_pairs, warping_nodes, n_iterations, m,
+//                       distance_threshold);
+// }
 
 }  // namespace python_api
 
@@ -199,9 +200,9 @@ PYBIND11_MODULE(msiwarp, m) {
         Find the optimal combination of warpings.
     )pbdoc");
 
-  m.def("ransac", &python_api::ransac, R"pbdoc(
-        Random sampling consensus of preliminary peak matches.
-    )pbdoc");
+  // m.def("ransac", &python_api::ransac, R"pbdoc(
+  //       Random sampling consensus of preliminary peak matches.
+  //   )pbdoc");
 
   m.def("splat_peaks", &warp::splat_peaks, R"pbdoc(
         Splats peaks on sampling points, xi. Peaks must be sorted by m/z.
@@ -271,36 +272,36 @@ PYBIND11_MODULE(msiwarp, m) {
         TODO: add documentation.
     )pbdoc");
 
-  py::class_<warp::ransac_result>(m, "ransac_result")
-      .def_readonly("errors", &warp::ransac_result::errors)
-      .def_readonly("inliers", &warp::ransac_result::inliers)
-      .def_readonly("models", &warp::ransac_result::models)
-      .def_readonly("maybe_inliers", &warp::ransac_result::maybe_inliers)
-      .def("__repr__", [](const warp::ransac_result& rr) {
-        return "RANSAC results <number of iterations: " +
-               std::to_string(rr.errors.size()) + ">";
-      });
+  // py::class_<warp::ransac_result>(m, "ransac_result")
+  //     .def_readonly("errors", &warp::ransac::ransac_result::errors)
+  //     .def_readonly("inliers", &warp::ransac_result::inliers)
+  //     .def_readonly("models", &warp::ransac_result::models)
+  //     .def_readonly("maybe_inliers", &warp::ransac_result::maybe_inliers)
+  //     .def("__repr__", [](const warp::ransac_result& rr) {
+  //       return "RANSAC results <number of iterations: " +
+  //              std::to_string(rr.errors.size()) + ">";
+  //     });
 
-  py::class_<warp::ransac_params>(m, "ransac_params")
-      .def_readonly("n_segments", &warp::ransac_params::n_segments)
-      .def_readonly("n_iterations", &warp::ransac_params::n_iterations)
-      .def_readonly("n_samples", &warp::ransac_params::n_samples)
-      .def_readonly("min_matched_peaks",
-                    &warp::ransac_params::min_matched_peaks)
-      .def_readonly("distance_threshold",
-                    &warp::ransac_params::distance_threshold)
-      .def_readonly("mz_begin", &warp::ransac_params::mz_begin)
-      .def_readonly("mz_end", &warp::ransac_params::mz_end)
-      .def("__repr__", [](const warp::ransac_params& p) {
-        return "RANSAC parameters: <n_segments: " +
-               std::to_string(p.n_segments) +
-               ", n_iterations: " + std::to_string(p.n_iterations) +
-               ", n_samples: " + std::to_string(p.n_samples) +
-               ", min_matched_peaks: " + std::to_string(p.min_matched_peaks) +
-               ", distance_threshold: " + std::to_string(p.distance_threshold) +
-               ", mz_begin: " + std::to_string(p.mz_begin) +
-               ", mz_end: " + std::to_string(p.mz_end) + ">";
-      });
+  // py::class_<warp::ransac_params>(m, "ransac_params")
+  //     .def_readonly("n_segments", &warp::ransac_params::n_segments)
+  //     .def_readonly("n_iterations", &warp::ransac_params::n_iterations)
+  //     .def_readonly("n_samples", &warp::ransac_params::n_samples)
+  //     .def_readonly("min_matched_peaks",
+  //                   &warp::ransac_params::min_matched_peaks)
+  //     .def_readonly("distance_threshold",
+  //                   &warp::ransac_params::distance_threshold)
+  //     .def_readonly("mz_begin", &warp::ransac_params::mz_begin)
+  //     .def_readonly("mz_end", &warp::ransac_params::mz_end)
+  //     .def("__repr__", [](const warp::ransac_params& p) {
+  //       return "RANSAC parameters: <n_segments: " +
+  //              std::to_string(p.n_segments) +
+  //              ", n_iterations: " + std::to_string(p.n_iterations) +
+  //              ", n_samples: " + std::to_string(p.n_samples) +
+  //              ", min_matched_peaks: " + std::to_string(p.min_matched_peaks) +
+  //              ", distance_threshold: " + std::to_string(p.distance_threshold) +
+  //              ", mz_begin: " + std::to_string(p.mz_begin) +
+  //              ", mz_end: " + std::to_string(p.mz_end) + ">";
+  //     });
 
 #ifdef VERSION_INFO
   m.attr("__version__") = VERSION_INFO;

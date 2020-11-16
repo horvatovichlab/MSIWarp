@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <numeric>
 #include <cmath>
-#include <random>   // RANSAC
 
 #include "util/parallel.hpp"
 
@@ -12,15 +11,7 @@ using std::vector;
 
 namespace warp {
 
-/* linear interpolation. */
-inline double lerp(double x,
-                   double x_min,
-                   double x_max,
-                   double y_min,
-                   double y_max) {
-  double a = (x - x_min) / (x_max - x_min);
-  return y_min + a * (y_max - y_min);
-}
+
 
 /* utility function */
 peak_vec interpolate_peaks(const peak_vec& peaks,
@@ -150,11 +141,13 @@ vector<T> get_range(const vector<T>& v, double begin, double end, Comp comp) {
   return out;
 }
 
+// Get all peaks in v within the range [begin, end). v must be sorted by m/z.
 peak_vec peaks_between(const peak_vec& peaks, double mz_begin, double mz_end) {
   auto comp_mz = [](const peak& p_a, double mz) { return p_a.mz < mz; };
   return get_range(peaks, mz_begin, mz_end, comp_mz);
 }
 
+// Get all peak pairs in v within the range [begin, end). v must be sorted by m/z.
 vector<peak_pair> peak_pairs_between(const vector<peak_pair>& peak_pairs,
                                      double mz_begin,
                                      double mz_end) {
@@ -162,34 +155,34 @@ vector<peak_pair> peak_pairs_between(const vector<peak_pair>& peak_pairs,
   return get_range(peak_pairs, mz_begin, mz_end, comp_mz);
 }
 
-// TODO:
-peak_vec peaks_top_n(const peak_vec& peaks, size_t n) {
-  size_t max_n = std::min(n, peaks.size());
+template <class T, class Comp>
+vector<T> get_top_n(const vector<T>& v, size_t n, Comp comp) {
+  size_t max_n = std::min(n, v.size());
 
-  // Sort peaks by height in descending order then take the first n peaks.
-  peak_vec out = peaks;
-  std::sort(out.begin(), out.end(),
-            [](const peak& a, const peak& b) { return a.height > b.height; });
-  out.erase(out.begin() + max_n, out.end());
+  vector<T> v_out = v;
+  std::sort(v_out.begin(), v_out.end(), comp);
+  v_out.erase(v_out.begin() + max_n, v_out.end());
 
-  return out;
+  return v_out;
 }
 
-// TODO:
+// Get the n most intense peaks, sorted in descending order, of input peak list.
+peak_vec peaks_top_n(const peak_vec& peaks, size_t n) {
+  auto comp_peaks = [](const peak& a, const peak& b) {
+    return a.height > b.height;
+  };
+  return get_top_n(peaks, n, comp_peaks);
+}
+
+// Get the n most intense peak pairs, sorted in descending order, of input list
+// of peak pairs.
 vector<peak_pair> peak_pairs_top_n(const vector<peak_pair>& peak_pairs,
                                    size_t n) {
-  size_t max_n = std::min(n, peak_pairs.size());
-
-  auto peak_pairs_sorted = peak_pairs;
-  std::sort(peak_pairs_sorted.begin(), peak_pairs_sorted.end(),
-            [](const peak_pair& p_a, const peak_pair& p_b) {
-              return (p_a.first.height * p_a.second.height) >
-                     (p_b.first.height * p_b.second.height);
-            });
-  peak_pairs_sorted.erase(peak_pairs_sorted.begin() + max_n,
-                          peak_pairs_sorted.end());
-
-  return peak_pairs_sorted;
+  auto comp_pairs = [](const peak_pair& p_a, const peak_pair& p_b) {
+    return (p_a.first.height * p_a.second.height) >
+           (p_b.first.height * p_b.second.height);
+  };
+  return get_top_n(peak_pairs, n, comp_pairs);
 }
 
 // Calculate the gaussian contribution of the overlap between two points in
@@ -208,9 +201,7 @@ double gaussian_contribution(double x_a,
   return sigma_a * sigma_b * std::exp(0.5 * (a - b)) / std::sqrt(var_a + var_b);
 }
 
-/* mutating implementation that can be used to reduce the number of constructions and
- * destructions of warping surfaces in RANSAC */
-void compute_warping_surf_impl(vector<double>& warping_surf,
+void detail::compute_warping_surf_impl(vector<double>& warping_surf,
                                const vector<peak_pair>& peaks_pairs,
                                const node& node_left,
                                const node& node_right) {
@@ -256,13 +247,11 @@ vector<double> compute_warping_surf(const vector<peak_pair>& peak_pairs,
                                     const node& node_right) {
   vector<double> warping_surf(
       node_left.mz_shifts.size() * node_left.mz_shifts.size(), 0.0);
-  compute_warping_surf_impl(warping_surf, peak_pairs, node_left, node_right);
+  detail::compute_warping_surf_impl(warping_surf, peak_pairs, node_left, node_right);
   return warping_surf;
 }
 
-/* mutating implementation that can be used to reduce the number of constructions and
- * destructions of warping surf data in RANSAC */
-vector<size_t> optimal_warping_impl(vector<vector<double>>& cum_surfs,
+vector<size_t> detail::optimal_warping_impl(vector<vector<double>>& cum_surfs,
                                     size_t n_steps) {
   // Dynamic programming to find optimal combination of node moves
   size_t n_levels = cum_surfs.size();
@@ -322,103 +311,11 @@ vector<size_t> optimal_warping_impl(vector<vector<double>>& cum_surfs,
 vector<size_t> optimal_warping(const vector<vector<double>>& warping_surfs,
                                size_t n_steps) {
   auto cum_surfs = warping_surfs;
-  auto optimal_path = optimal_warping_impl(cum_surfs, n_steps);
+  auto optimal_path = detail::optimal_warping_impl(cum_surfs, n_steps);
   return optimal_path;
 }
 
-// random sample consensus (RANSAC) to detect outliers/inliers among peak
-// pairs
-ransac_result ransac(const vector<vector<peak_pair>>& peak_pairs,
-                     const node_vec& warping_nodes,
-                     size_t n_iterations,
-                     size_t m,
-                     double distance_threshold) {
-  size_t n_steps = warping_nodes.front().mz_shifts.size();
-  size_t n_segments = peak_pairs.size();
-  size_t n_peaks =
-      std::accumulate(peak_pairs.begin(), peak_pairs.end(), 0,
-                      [](size_t sum, const auto& p) { return sum + p.size(); });
 
-  // setup random sampling
-  std::random_device rd;
-  std::mt19937 gen(rd());
-  std::uniform_int_distribution<> udist(0, 100000);
-
-  vector<double> errors(n_iterations, 0.0);
-  vector<vector<bool>> inliers(n_iterations, vector<bool>(n_peaks, false));
-  vector<vector<size_t>> optimal_paths;
-  vector<vector<vector<size_t>>> maybe_inliers;
-
-  // pre-allocate warping surfs
-  vector<vector<double>> warping_surfs(n_segments,
-                                       vector<double>(n_steps * n_steps, 0.0));
-
-  for (size_t i = 0; i < n_iterations; ++i) {
-    vector<vector<size_t>> indices_pairs;
-
-    for (size_t j = 0; j < n_segments; ++j) {
-      vector<size_t> indices_j;
-
-      auto& warping_surf_j = warping_surfs[j];
-      std::fill(warping_surf_j.begin(), warping_surf_j.end(), 0.0);
-
-      const auto& peak_pairs_segment = peak_pairs[j];
-
-      // sample m peaks per segment
-      vector<peak_pair> maybe_inliers_j;
-      for (size_t k = 0; k < m; ++k) {
-        size_t x = udist(gen) % peak_pairs_segment.size();
-        indices_j.push_back(x);
-        maybe_inliers_j.push_back(peak_pairs_segment[x]);
-      }
-
-      // store indices of maybe_inliers
-      indices_pairs.push_back(indices_j);
-
-      compute_warping_surf_impl(warping_surf_j, maybe_inliers_j,
-                                warping_nodes[j], warping_nodes[j + 1]);
-    }
-
-    auto optimal_path = optimal_warping_impl(warping_surfs, n_steps);
-
-    // set of inliers and error for this iteration
-    auto& inliers_i = inliers[i];
-    double e_i = 0.0;
-    size_t n_inliers_i = 0;
-
-    size_t peak_index = 0;
-
-    // test how many peaks fit warping
-    for (size_t j = 0; j < n_segments; ++j) {
-      const auto& peak_pairs_segment = peak_pairs[j];
-      const node& left = warping_nodes[j];
-      const node& right = warping_nodes[j + 1];
-
-      double mz_left_warped = left.mz + left.mz_shifts[optimal_path[j]];
-      double mz_right_warped = right.mz + right.mz_shifts[optimal_path[j + 1]];
-
-      for (const auto& p : peak_pairs_segment) {
-        double mz_warped = lerp(p.second.mz, left.mz, right.mz, mz_left_warped,
-                                mz_right_warped);
-        double d = std::pow((p.first.mz - mz_warped) / p.second.sigma_mz, 2);
-
-        if (d < distance_threshold) {
-          n_inliers_i++;
-          inliers_i[peak_index] = true;
-          e_i += d;
-        }
-
-        peak_index++;
-      }
-    }
-
-    errors[i] = std::sqrt(e_i / n_inliers_i);
-    optimal_paths.push_back(optimal_path);
-    maybe_inliers.push_back(indices_pairs);
-  }
-
-  return {errors, inliers, optimal_paths, maybe_inliers};
-}
 
 vector<double> splat_peaks(const peak_vec& peaks,
                            const vector<double>& xi,

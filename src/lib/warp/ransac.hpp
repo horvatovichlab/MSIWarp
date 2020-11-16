@@ -4,8 +4,9 @@
 #include <vector>
 
 #include "warp.hpp"
+#include "warp_util.hpp"
 
-namespace ransac {
+namespace warp::ransac {
 
 /* TODO: document
 example:
@@ -31,10 +32,9 @@ struct ransac_result {
 };
 
 /* */
-std::vector<std::pair<ransac_result, warp::node_vec>> align_ransac(
-    const std::vector<warp::peak_vec>& spectra,
-    const warp::peak_vec s_r,
-    const ransac_params& params);
+std::vector<peak_pair> ransac_pairs(const std::vector<peak_pair>& pairs,
+                                    const ransac_params& params,
+                                    const util::params_uniform& node_params);
 
 /* */
 ransac_result ransac(
@@ -44,6 +44,14 @@ ransac_result ransac(
     size_t m,
     double distance_threshold);
 
-}  // namespace ransac
+/* */
+std::vector<std::pair<ransac_result, warp::node_vec>> align_ransac(
+    const std::vector<warp::peak_vec>& spectra,
+    const warp::peak_vec s_r,
+    const ransac_params& params);
+
+
+
+}  // namespace warp::ransac
 
 #endif

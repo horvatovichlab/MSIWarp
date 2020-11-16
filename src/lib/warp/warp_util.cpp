@@ -69,21 +69,22 @@ std::vector<size_t> find_optimal_warping_pairs(const std::vector<peak_pair>& ps,
   return optimal_warping(warping_surfs, n_steps);
 }
 
-/* Function template for aligning with a custom node placement function Func.
-   Params: */
+/* Function template for aligning with a custom node placement function Func
+   that takes two arguments: a list of peak pairs and the parameter struct
+   expected by the function. */
 template <class Func, class Params>
 recalibration_function find_optimal_warping_unique(const peak_vec& s_r,
                                                    const peak_vec& s_s,
                                                    double epsilon,
-                                                   Func&& node_func,
+                                                   Func node_func,
                                                    const Params& params) {
-  const auto ps = overlapping_peak_pairs(s_r, s_s, epsilon);
+  const auto pairs = overlapping_peak_pairs(s_r, s_s, epsilon);
 
   // place nodes uniquely for each spectrum
-  const auto nodes = node_func(ps, params);
+  const auto nodes = node_func(pairs, params);
 
   //
-  const auto optimal_warping = find_optimal_warping_pairs(ps, nodes);
+  const auto optimal_warping = find_optimal_warping_pairs(pairs, nodes);
 
   // With uniquely placed nodes we must return the nodes' m/z in addition to
   // their optimal shifts.

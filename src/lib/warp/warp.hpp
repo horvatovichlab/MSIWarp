@@ -13,6 +13,7 @@ enum class instrument { TOF, Orbitrap, FT_ICR, Quadrupole };
  * each warping node */
 using recalibration_function = std::vector<std::pair<double, double>>;
 
+
 /* */
 struct peak {
   uint32_t id;
@@ -30,59 +31,33 @@ struct node {
 
 // TODO: add struct for warp parameters ?
 
-/* TODO: put ransac structures and functions in separate file */
-struct ransac_params {
-  size_t n_segments;
-  size_t n_iterations;
-  size_t n_samples;
-  size_t min_matched_peaks;
-  double distance_threshold;
-  double mz_begin;
-  double mz_end;
-};
-
-/* TODO: put ransac structures and functions in separate file */
-struct ransac_result {
-  std::vector<double> errors;
-  std::vector<std::vector<bool>> inliers;
-  std::vector<std::vector<size_t>> models;
-  std::vector<std::vector<std::vector<size_t>>> maybe_inliers;
-};
-
 using peak_pair = std::pair<peak, peak>;
 using peak_vec = std::vector<peak>; // often a spectrum, but not always
 using node_vec = std::vector<node>;
 
-/* find the optimal combination node moves to align source spectrum to reference
- * spectrum */
+/* Finds the optimal combination node moves that align the source spectrum to
+ * the reference spectrum. */
 std::vector<size_t> find_optimal_warping(const peak_vec& s_r,
                                          const peak_vec& s_s,
                                          const node_vec& nodes,
                                          double epsilon);
 
-/* align a list of spectra to reference spectrum, s_r, with fixed nodes
- and without RANSAC */
+/* Aligns a list of spectra to reference spectrum, s_r, without RANSAC and with
+ constant nodes. */
 std::vector<std::vector<size_t>> find_optimal_warpings(
     const std::vector<peak_vec>& spectra,
     const peak_vec& s_r,
     const node_vec& nodes,
     double epsilon);
 
-/* TODO: put ransac structures and functions in separate file. align a list
-   of spectra to reference spectrum, s_r, with RANSAC */
-std::vector<std::pair<ransac_result, node_vec>> align_ransac(
-    const std::vector<peak_vec>& spectra,
-    const peak_vec s_r,
-    const ransac_params& params);
-
-/* warp peak masses with piecewise linear interpolation between pairs of shifted
-   warping nodes */
+/* Warps peak masses with piecewise linear interpolation between pairs of shifted
+   warping nodes. */
 peak_vec warp_peaks(const peak_vec& peaks,
                     const node_vec& nodes,
                     const std::vector<size_t>& moves);
 
-/* warp peak masses with piecewise linear interpolation between pairs of shifted
-   warping nodes */
+/* Warps peak masses with piecewise linear interpolation between pairs of shifted
+   warping nodes. */
 peak_vec warp_peaks_unique(const peak_vec& peaks,
                            const recalibration_function& recal_func);
 
@@ -129,13 +104,6 @@ std::vector<size_t> optimal_warping(
     const std::vector<std::vector<double>>& warping_surfs,
     size_t n_steps);
 
-/* */
-ransac_result ransac(const std::vector<std::vector<peak_pair>>& peak_pairs,
-                     const node_vec& warping_nodes,
-                     size_t n_iterations,
-                     size_t m,
-                     double distance_threshold);
-
 /* Splats peaks on m/z sampling points xi */
 std::vector<double> splat_peaks(const peak_vec& peaks,
                                 const std::vector<double>& xi,
@@ -148,6 +116,34 @@ peak_vec merge_spectra(const peak_vec&, const peak_vec&);
 std::vector<std::pair<peak, peak>> overlapping_peak_pairs(const peak_vec& s_a,
                                                           const peak_vec& s_b,
                                                           double max_dist);
+
+/* Linear interpolation. */
+inline double lerp(double x,
+                   double x_min,
+                   double x_max,
+                   double y_min,
+                   double y_max) {
+  double a = (x - x_min) / (x_max - x_min);
+  return y_min + a * (y_max - y_min);
+}
+
+namespace detail {
+
+/* Mutating implementation of compute_warping_surfs that can be used to reduce
+ * the number of constructions and destructions of warping surfaces in RANSAC.
+ */
+void compute_warping_surf_impl(std::vector<double>& warping_surf,
+                               const std::vector<peak_pair>& peaks_pairs,
+                               const node& node_left,
+                               const node& node_right);
+
+/* Mutating implementationof optimal_warping that can be used to reduce the
+ * number of constructions and destructions of warping surf data in RANSAC. */
+std::vector<size_t> optimal_warping_impl(
+    std::vector<std::vector<double>>& cum_surfs,
+    size_t n_steps);
+
+}  // namespace detail
 
 }  // namespace warp
 
