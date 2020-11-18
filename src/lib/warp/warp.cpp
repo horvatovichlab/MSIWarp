@@ -11,9 +11,7 @@ using std::vector;
 
 namespace warp {
 
-
-
-/* utility function */
+/* Auxilliary function. TODO: take warped peaks as argument.  */
 peak_vec interpolate_peaks(const peak_vec& peaks,
                            double mz_begin,
                            double mz_end,
@@ -34,7 +32,7 @@ vector<size_t> find_optimal_warping(const peak_vec& s_r,
                                     const peak_vec& s_s,
                                     const node_vec& nodes,
                                     double epsilon) {
-  // Only use overlapping peaks
+  // TODO: remove or rewrite, this function is duplicated in warp_util.cpp.
   const auto s_m = overlapping_peak_pairs(s_r, s_s, epsilon);
 
   std::vector<std::vector<double>> warping_surfs;
@@ -141,13 +139,11 @@ vector<T> get_range(const vector<T>& v, double begin, double end, Comp comp) {
   return out;
 }
 
-// Get all peaks in v within the range [begin, end). v must be sorted by m/z.
 peak_vec peaks_between(const peak_vec& peaks, double mz_begin, double mz_end) {
   auto comp_mz = [](const peak& p_a, double mz) { return p_a.mz < mz; };
   return get_range(peaks, mz_begin, mz_end, comp_mz);
 }
 
-// Get all peak pairs in v within the range [begin, end). v must be sorted by m/z.
 vector<peak_pair> peak_pairs_between(const vector<peak_pair>& peak_pairs,
                                      double mz_begin,
                                      double mz_end) {
@@ -166,7 +162,6 @@ vector<T> get_top_n(const vector<T>& v, size_t n, Comp comp) {
   return v_out;
 }
 
-// Get the n most intense peaks, sorted in descending order, of input peak list.
 peak_vec peaks_top_n(const peak_vec& peaks, size_t n) {
   auto comp_peaks = [](const peak& a, const peak& b) {
     return a.height > b.height;
@@ -174,8 +169,6 @@ peak_vec peaks_top_n(const peak_vec& peaks, size_t n) {
   return get_top_n(peaks, n, comp_peaks);
 }
 
-// Get the n most intense peak pairs, sorted in descending order, of input list
-// of peak pairs.
 vector<peak_pair> peak_pairs_top_n(const vector<peak_pair>& peak_pairs,
                                    size_t n) {
   auto comp_pairs = [](const peak_pair& p_a, const peak_pair& p_b) {
@@ -253,15 +246,15 @@ vector<double> compute_warping_surf(const vector<peak_pair>& peak_pairs,
 
 vector<size_t> detail::optimal_warping_impl(vector<vector<double>>& cum_surfs,
                                     size_t n_steps) {
-  // Dynamic programming to find optimal combination of node moves
+  // Dynamic programming to find optimal combination of node moves.
   size_t n_levels = cum_surfs.size();
 
-  // Backward pass to compute cummulative levels
+  // Backward pass to compute cummulative levels.
   for (size_t i = n_levels - 1; i > 0; --i) {
     const auto& surf_current = cum_surfs[i];
     auto& surf_next = cum_surfs[i - 1];
 
-    // Find best right move for each left move;
+    // Find best right move for each left move.
     vector<double> row_max(n_steps, 0.0);
     auto it_current = surf_current.begin();
     for (size_t j = 0; j < n_steps; ++j) {
@@ -270,8 +263,8 @@ vector<size_t> detail::optimal_warping_impl(vector<vector<double>>& cum_surfs,
       it_current += n_steps;
     }
 
-    /* Take maximum for each move of left node from current surf and add to
-     * right moves of next surf */
+    // Take maximum for each move of left node from current surf and add to
+    // right moves of next surf.
     auto it_next = surf_next.begin();
     for (size_t j = 0; j < n_steps; ++j) {
       std::transform(it_next, it_next + n_steps, row_max.begin(), it_next,
@@ -280,10 +273,10 @@ vector<size_t> detail::optimal_warping_impl(vector<vector<double>>& cum_surfs,
     }
   }
 
-  // Then do a forward pass to find optimal path
+  // Then do a forward pass to find optimal path.
   const auto& cum_first = cum_surfs.front();
 
-  // Find optimal left and right node of first level
+  // Find optimal left and right node of first level.
   size_t i_max = std::distance(
       cum_first.begin(), std::max_element(cum_first.begin(), cum_first.end()));
   size_t i_left = i_max / n_steps;
@@ -293,7 +286,7 @@ vector<size_t> detail::optimal_warping_impl(vector<vector<double>>& cum_surfs,
   optimal_path.push_back(i_left);
   optimal_path.push_back(i_right);
 
-  // Find optimal right move for each level given optimal left
+  // Find optimal right move for each level given optimal left.
   for (size_t i = 1; i < n_levels; ++i) {
     const auto& current_surf = cum_surfs[i];
     i_left = i_right;

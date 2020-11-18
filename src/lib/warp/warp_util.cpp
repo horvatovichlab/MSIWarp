@@ -52,7 +52,7 @@ node_vec get_warping_nodes_uniform(const std::vector<peak_pair>& pairs,
   return warp::init_nodes(mzs, deltas, p.n_steps);
 }
 
-// TODO: duplicate from warp.coo
+// TODO: duplicate of warp.cpp
 std::vector<size_t> find_optimal_warping_pairs(const std::vector<peak_pair>& ps,
                                                const node_vec& nodes) {
   std::vector<std::vector<double>> warping_surfs;

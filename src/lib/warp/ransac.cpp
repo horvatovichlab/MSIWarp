@@ -13,14 +13,40 @@ using std::vector;
 
 namespace warp::ransac {
 
+recalibration_function align_ransac_uniform(
+    const peak_vec& s_r,
+    const peak_vec& s_s,
+    double epsilon,
+    const ransac_params& rp,
+    const util::params_uniform& node_params) {
+  // find inliers
+
+  // find optimal warping with inliers
+
+  return {};
+}
+
+recalibration_function align_ransac_density(
+    const peak_vec& s_r,
+    const peak_vec& s_s,
+    double epsilon,
+    const ransac_params& rp,
+    const util::params_density& node_params) {
+  // find inliers
+
+  // find optimal warping with inliers
+
+  return {};
+}
+
 std::vector<peak_pair> ransac_pairs(const std::vector<peak_pair>& pairs,
                                     const ransac_params& p,
                                     const util::params_uniform& node_params) {
   if (pairs.size() < p.min_matched_peaks) {
-      return pairs; // early return if too few peak matches
+    return pairs;  // early return if too few peak matches
   }
-                            
-  auto nodes_ransac = util::get_warping_nodes_uniform(pairs, node_params);
+
+  const auto nodes_ransac = util::get_warping_nodes_uniform(pairs, node_params);
 
   vector<vector<peak_pair>> pairs_ransac;
   for (size_t i = 0; nodes_ransac.size() - 1; ++i) {
@@ -30,11 +56,11 @@ std::vector<peak_pair> ransac_pairs(const std::vector<peak_pair>& pairs,
     pairs_ransac.emplace_back(peak_pairs_between(pairs, n_left.mz, n_right.mz));
   }
 
-  auto rr = ransac(pairs_ransac, nodes_ransac, p.n_iterations, p.n_samples,
-                   p.distance_threshold);
+  const auto rr = ransac(pairs_ransac, nodes_ransac, p.n_iterations,
+                         p.n_samples, p.distance_threshold);
 
   // use the model with the most inliers as the best
-  auto it_max_inliers = std::max_element(
+  const auto it_max_inliers = std::max_element(
       rr.inliers.begin(), rr.inliers.end(), [](const auto& v1, const auto& v2) {
         return std::count(v1.begin(), v1.end(), true) <
                std::count(v2.begin(), v2.end(), true);
@@ -45,10 +71,10 @@ std::vector<peak_pair> ransac_pairs(const std::vector<peak_pair>& pairs,
   pairs_inliers.reserve(pairs.size());
 
   for (size_t i = 0; i < pairs.size(); ++i) {
-      if((*it_max_inliers)[i]) {
-          pairs_inliers.push_back(pairs[i]);
-      }
-  }  
+    if ((*it_max_inliers)[i]) {
+      pairs_inliers.push_back(pairs[i]);
+    }
+  }
 
   return pairs_inliers;
 }
