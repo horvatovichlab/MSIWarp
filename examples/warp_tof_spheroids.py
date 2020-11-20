@@ -41,10 +41,10 @@ node_mzs = np.array([mz_begin, *node_mzs, mz_end])
 
 # setup warping parameters 
 n_steps = 50 # the slack of a warping node is +- (n_steps * s * sigma @ the node's m/z)
-s = 2 * epsilon / n_steps
+slack = 2.0 * epsilon * sigma_1
 
-node_sigmas = np.array([mz * s * sigma_1 for mz in node_mzs])
-nodes = mx.initialize_nodes(node_mzs, node_sigmas, n_steps)
+node_slacks = np.array([slack * mz for mz in node_mzs])
+nodes = mx.initialize_nodes(node_mzs, node_slacks, n_steps)
 
 
 # ---------- warp spectra ----------

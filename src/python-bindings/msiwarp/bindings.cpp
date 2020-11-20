@@ -227,22 +227,22 @@ PYBIND11_MODULE(msiwarp, m) {
       .def_readonly("id", &warp::peak::id)
       .def_readonly("mz", &warp::peak::mz)
       .def_readonly("height", &warp::peak::height)
-      .def_readonly("sigma_mz", &warp::peak::sigma_mz)
+      .def_readonly("sigma_mz", &warp::peak::sigma)
       .def(py::init<uint32_t, double, double, double>())
       .def("__repr__", [](const warp::peak& p) {
         return "Peak <entity_id: " + std::to_string(p.id) +
                ", mz: " + std::to_string(p.mz) +
                ", height: " + std::to_string(p.height) +
-               ", sigma_mz: " + std::to_string(p.sigma_mz) + ">";
+               ", sigma_mz: " + std::to_string(p.sigma) + ">";
       });
 
   py::class_<warp::node>(m, "node")
       .def_readonly("mz", &warp::node::mz)
-      .def_readonly("sigma_mz", &warp::node::sigma_mz)
+      .def_readonly("slack", &warp::node::slack)
       .def_readonly("mz_shifts", &warp::node::mz_shifts)
       .def("__repr__", [](const warp::node& n) {
         return "Node <mz: " + std::to_string(n.mz) +
-               ", sigma_mz: " + std::to_string(n.sigma_mz) + ", mz_shifts: [" +
+               ", slack: " + std::to_string(n.slack) + ", mz_shifts: [" +
                std::to_string(n.mz_shifts.front()) + ", " +
                std::to_string(n.mz_shifts.back()) + "]>";
       });

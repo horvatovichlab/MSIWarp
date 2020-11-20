@@ -8,37 +8,44 @@ namespace warp {
 
 /* The relationship between peak width and m/z depends on instrument type. */
 enum class instrument { TOF, Orbitrap, FT_ICR, Quadrupole };
-
-/* Piecewise linear recalibration function composed of the m/z and m/z shift for
- * each warping node. */
-using recalibration_function = std::vector<std::pair<double, double>>;
+double get_mz_scaling(double mz, instrument inst);
 
 /* */
 struct peak {
   uint32_t id;
   double mz;
   double height;
-  double sigma_mz;
+  double sigma;
 };
 
-/* The search space, i.e., slack, of each warping node is its original mz +-
- * delta times n_steps.  */
+/* The search space, i.e., slack, is divided into n_steps up and down in m/z,
+ * resulting in a total of (2 * n_steps + 1) m/z shifts. */
 struct node {
   double mz;
-  double sigma_mz;
+  double slack;
   std::vector<double> mz_shifts;
 };
 
 using peak_pair = std::pair<peak, peak>;
-using peak_vec = std::vector<peak>; // often a spectrum, but not always
+using peak_vec = std::vector<peak>;  // often a spectrum, but not always
 using node_vec = std::vector<node>;
 
-/* Find the optimal combination node moves that align the source spectrum to
- the reference spectrum. */
+/* Piecewise linear recalibration function composed of the m/z and m/z shift of
+ * each warping node. */
+using recalibration_function = std::vector<std::pair<double, double>>;
+
+/* Find the optimal combination node moves that align the source spectrum, s_s,
+ to the reference spectrum s_r. */
 std::vector<size_t> find_optimal_warping(const peak_vec& s_r,
                                          const peak_vec& s_s,
                                          const node_vec& nodes,
                                          double epsilon);
+
+/* Find the optimal combination node moves that maximizes the sum overlap
+ * between the pairs. */
+std::vector<size_t> find_optimal_warping_pairs(
+    const std::vector<peak_pair>& pairs,
+    const node_vec& nodes);
 
 /* Find the optimal combination of node shifts for a list of spectra, without
  * RANSAC and with constant nodes. */
@@ -136,7 +143,6 @@ std::vector<size_t> optimal_warping_impl(
     size_t n_steps);
 
 }  // namespace detail
-
 
 /* ------------------ Legacy functions ------------------ */
 

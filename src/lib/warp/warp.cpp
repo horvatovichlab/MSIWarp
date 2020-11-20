@@ -11,7 +11,17 @@ using std::vector;
 
 namespace warp {
 
-/* Auxilliary function. TODO: take warped peaks as argument.  */
+// see 
+double get_mz_scaling(double mz, instrument inst) {  
+  switch (inst) {
+    case instrument::TOF        : return mz;      
+    case instrument::Orbitrap   : return std::pow(mz, 1.5);    
+    case instrument::FT_ICR     : return std::pow(mz, 2.0);
+    case instrument::Quadrupole : return 1.0;
+  }
+}
+
+/* Auxiliary function. TODO: take warped peaks as argument.  */
 peak_vec interpolate_peaks(const peak_vec& peaks,
                            double mz_begin,
                            double mz_end,
@@ -22,7 +32,7 @@ peak_vec interpolate_peaks(const peak_vec& peaks,
 
   for (const auto& p : peaks) {
     double mz_new = lerp(p.mz, mz_begin, mz_end, mz_begin_ref, mz_end_ref);
-    warped_peaks.push_back({p.id, mz_new, p.height, p.sigma_mz});
+    warped_peaks.push_back({p.id, mz_new, p.height, p.sigma});
   }
 
   return warped_peaks;
@@ -33,15 +43,20 @@ vector<size_t> find_optimal_warping(const peak_vec& s_r,
                                     const node_vec& nodes,
                                     double epsilon) {
   // TODO: remove or rewrite, this function is duplicated in warp_util.cpp.
-  const auto s_m = overlapping_peak_pairs(s_r, s_s, epsilon);
+  const auto pairs = overlapping_peak_pairs(s_r, s_s, epsilon);
+  return find_optimal_warping_pairs(pairs, nodes);
+}
 
+std::vector<size_t> find_optimal_warping_pairs(
+    const std::vector<peak_pair>& pairs,
+    const node_vec& nodes) {
   std::vector<std::vector<double>> warping_surfs;
   for (size_t i = 0; i < nodes.size() - 1; ++i) {
     const auto& n_l = nodes[i];
     const auto& n_r = nodes[i + 1];
 
-    const auto s_m_i = peak_pairs_between(s_m, n_l.mz, n_r.mz);
-    const auto w_i = compute_warping_surf(s_m_i, n_l, n_r);
+    const auto pairs_i = peak_pairs_between(pairs, n_l.mz, n_r.mz);
+    const auto w_i = compute_warping_surf(pairs_i, n_l, n_r);
     warping_surfs.push_back(w_i);
   }
 
@@ -100,7 +115,7 @@ peak_vec warp_peaks_unique(const peak_vec& peaks,
 }
 
 node_vec init_nodes(const vector<double>& mzs,
-                    const vector<double>& sigmas,
+                    const vector<double>& slacks,
                     uint32_t n_steps) {
   size_t n_nodes = mzs.size();
   node_vec nodes;
@@ -109,17 +124,18 @@ node_vec init_nodes(const vector<double>& mzs,
   // All possible moves (contraints in the warping function can be added here)
   for (size_t i = 0; i < n_nodes; ++i) {
     double mz_i = mzs[i];
-    double sigma_i = sigmas[i];
+    double slack_i = slacks[i];
 
     size_t m = 2 * n_steps + 1;
     vector<double> mz_shifts_i(m, 0.0);
 
+    double ds = slack_i / n_steps;
     for (size_t j = 0; j < m; ++j) {
       int k = j - n_steps;
-      mz_shifts_i[j] = sigma_i * k;
+      mz_shifts_i[j] = ds * k;
     }
 
-    nodes.push_back({mz_i, sigma_i, mz_shifts_i});
+    nodes.push_back({mz_i, slack_i, mz_shifts_i});
   }
 
   return nodes;
@@ -227,7 +243,7 @@ void detail::compute_warping_surf_impl(vector<double>& warping_surf,
       // Compute overlap after warping
       double overlap = p_ref.height * p_warp.height *
                        gaussian_contribution(p_ref.mz, mz_warped,
-                                             p_ref.sigma_mz, p_warp.sigma_mz);
+                                             p_ref.sigma, p_warp.sigma);
       warping_surf[i] += overlap;
       ++i;
     }
@@ -319,7 +335,7 @@ vector<double> splat_peaks(const peak_vec& peaks,
   auto start = xi.begin();
 
   for (const auto& p_i : peaks) {
-    const double d_mz = p_i.sigma_mz * splat_dist;
+    const double d_mz = p_i.sigma * splat_dist;
     const double mz_begin = p_i.mz - d_mz;
     const double mz_end = p_i.mz + d_mz;
 
@@ -328,7 +344,7 @@ vector<double> splat_peaks(const peak_vec& peaks,
     const auto stop = std::upper_bound(start, xi.end(), mz_end);
 
     for (auto it = start; it != stop; ++it) {
-      const double d = (*it - p_i.mz) / p_i.sigma_mz;
+      const double d = (*it - p_i.mz) / p_i.sigma;
       const double w = std::exp(-0.5 * std::pow(d, 2));
 
       const size_t i = std::distance(xi.begin(), it);
@@ -370,8 +386,8 @@ vector<peak_pair> overlapping_peak_pairs(const peak_vec& s_a,
     const auto& p_next = s_m[i + 1];
 
     if (p_current.id != p_next.id) {
-      double max_current = p_current.mz + max_dist * p_current.sigma_mz;
-      double min_next = p_next.mz - max_dist * p_next.sigma_mz;
+      double max_current = p_current.mz + max_dist * p_current.sigma;
+      double min_next = p_next.mz - max_dist * p_next.sigma;
 
       if (max_current > min_next) {  // the peaks overlap
         if (p_current.id == ref_id) {
@@ -391,10 +407,10 @@ vector<peak_pair> overlapping_peak_pairs(const peak_vec& s_a,
 double peak_overlap(const peak& peak_a, const peak& peak_b) {
   // Early return if the peaks do not intersect in the +/-3 * sigma_mz
   {
-    double min_mz_a = peak_a.mz - 3 * peak_a.sigma_mz;
-    double max_mz_a = peak_a.mz + 3 * peak_a.sigma_mz;
-    double min_mz_b = peak_b.mz - 3 * peak_b.sigma_mz;
-    double max_mz_b = peak_b.mz + 3 * peak_b.sigma_mz;
+    double min_mz_a = peak_a.mz - 3 * peak_a.sigma;
+    double max_mz_a = peak_a.mz + 3 * peak_a.sigma;
+    double min_mz_b = peak_b.mz - 3 * peak_b.sigma;
+    double max_mz_b = peak_b.mz + 3 * peak_b.sigma;
 
     if (max_mz_a < min_mz_b || max_mz_b < min_mz_a) {
       return 0;
@@ -402,7 +418,7 @@ double peak_overlap(const peak& peak_a, const peak& peak_b) {
   }
 
   double mz_contrib = gaussian_contribution(peak_a.mz, peak_b.mz,
-                                            peak_a.sigma_mz, peak_b.sigma_mz);
+                                            peak_a.sigma, peak_b.sigma);
 
   return mz_contrib * peak_a.height * peak_b.height;
 }

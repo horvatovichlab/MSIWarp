@@ -32,9 +32,6 @@ struct params_density {
   size_t n_steps;
 };
 
-/* TODO: move this to warp.hpp / warp.cpp */
-double get_mz_scaling(double mz, instrument inst);
-
 /* */
 node_vec get_warping_nodes_uniform(const std::vector<peak_pair>& ps,
                                    const params_uniform& params);

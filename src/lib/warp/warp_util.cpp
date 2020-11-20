@@ -7,16 +7,6 @@
      
 namespace warp::util {
 
-// TODO: move to warp.cpp?
-double get_mz_scaling(double mz, instrument inst) {  
-  switch (inst) {
-    case instrument::TOF        : return mz;      
-    case instrument::Orbitrap   : return std::pow(mz, 1.5);    
-    case instrument::FT_ICR     : return std::pow(mz, 2.0);
-    case instrument::Quadrupole : return 1.0;
-  }
-}
-
 node_vec get_warping_nodes_uniform(const std::vector<peak_pair>& pairs,
                                    const params_uniform& p) {
   size_t n_pairs = pairs.size();
@@ -41,32 +31,12 @@ node_vec get_warping_nodes_uniform(const std::vector<peak_pair>& pairs,
     }
   }
 
-  // slack = ds * n_steps; each node is shifted up and down in m/z
-  double ds = p.slack / p.n_steps;
-
-  std::vector<double> deltas(mzs.size());
-  std::transform(mzs.begin(), mzs.end(), deltas.begin(), [ds, &p](double mz) {
-    return ds * get_mz_scaling(mz, p.inst);
+  std::vector<double> slacks(mzs.size());
+  std::transform(mzs.begin(), mzs.end(), slacks.begin(), [&p](double mz) {
+    return p.slack * get_mz_scaling(mz, p.inst);
   });
 
-  return warp::init_nodes(mzs, deltas, p.n_steps);
-}
-
-// TODO: duplicate of warp.cpp
-std::vector<size_t> find_optimal_warping_pairs(const std::vector<peak_pair>& ps,
-                                               const node_vec& nodes) {
-  std::vector<std::vector<double>> warping_surfs;
-  for (size_t i = 0; i < nodes.size() - 1; ++i) {
-    const auto& n_l = nodes[i];
-    const auto& n_r = nodes[i + 1];
-
-    const auto ps_i = peak_pairs_between(ps, n_l.mz, n_r.mz);
-    const auto w_i = compute_warping_surf(ps_i, n_l, n_r);
-    warping_surfs.push_back(w_i);
-  }
-
-  size_t n_steps = nodes.front().mz_shifts.size();
-  return optimal_warping(warping_surfs, n_steps);
+  return warp::init_nodes(mzs, slacks, p.n_steps);
 }
 
 /* Function template for aligning with a custom node placement function Func

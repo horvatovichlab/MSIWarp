@@ -20,8 +20,15 @@ recalibration_function align_ransac_uniform(
     const ransac_params& rp,
     const util::params_uniform& node_params) {
   // find inliers
+  const auto pairs = overlapping_peak_pairs(s_r, s_s, epsilon);
+  const auto pairs_inliers = ransac_pairs(pairs, rp, node_params);
 
   // find optimal warping with inliers
+  const auto nodes_inliers =
+      util::get_warping_nodes_uniform(pairs_inliers, node_params);
+  auto optimal_shifts = find_optimal_warping_pairs(pairs_inliers, nodes_inliers)
+  
+  
 
   return {};
 }
@@ -79,12 +86,10 @@ std::vector<peak_pair> ransac_pairs(const std::vector<peak_pair>& pairs,
   return pairs_inliers;
 }
 
-// random sample consensus (RANSAC) to detect outliers/inliers among peak
-// pairs
 ransac_result ransac(const vector<vector<peak_pair>>& peak_pairs,
                      const node_vec& warping_nodes,
                      size_t n_iterations,
-                     size_t m,
+                     size_t n_samples,
                      double distance_threshold) {
   size_t n_steps = warping_nodes.front().mz_shifts.size();
   size_t n_segments = peak_pairs.size();
@@ -120,7 +125,7 @@ ransac_result ransac(const vector<vector<peak_pair>>& peak_pairs,
 
       // sample m peaks per segment
       vector<peak_pair> maybe_inliers_j;
-      for (size_t k = 0; k < m; ++k) {
+      for (size_t k = 0; k < n_samples; ++k) {
         size_t x = udist(gen) % peak_pairs_segment.size();
         indices_j.push_back(x);
         maybe_inliers_j.push_back(peak_pairs_segment[x]);
@@ -135,7 +140,7 @@ ransac_result ransac(const vector<vector<peak_pair>>& peak_pairs,
 
     auto optimal_path = detail::optimal_warping_impl(warping_surfs, n_steps);
 
-    // set of inliers and error for this iteration
+    // residual error and set of inliers for this iteration
     auto& inliers_i = inliers[i];
     double e_i = 0.0;
     size_t n_inliers_i = 0;
@@ -154,7 +159,7 @@ ransac_result ransac(const vector<vector<peak_pair>>& peak_pairs,
       for (const auto& p : peak_pairs_segment) {
         double mz_warped = lerp(p.second.mz, left.mz, right.mz, mz_left_warped,
                                 mz_right_warped);
-        double d = std::pow((p.first.mz - mz_warped) / p.second.sigma_mz, 2);
+        double d = std::pow((p.first.mz - mz_warped) / p.second.sigma, 2);
 
         if (d < distance_threshold) {
           n_inliers_i++;
