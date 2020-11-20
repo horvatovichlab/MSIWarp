@@ -39,7 +39,7 @@ node_vec get_warping_nodes_uniform(const std::vector<peak_pair>& pairs,
   return warp::init_nodes(mzs, slacks, p.n_steps);
 }
 
-/* Function template for aligning with a custom node placement function Func
+/* Function template for aligning with a custom node placement function, Func,
    that takes two arguments: a list of peak pairs and the parameter struct
    expected by the function. */
 template <class Func, class Params>

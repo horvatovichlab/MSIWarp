@@ -6,8 +6,9 @@
 
 namespace warp {
 
-/* The relationship between peak width and m/z depends on instrument type. */
 enum class instrument { TOF, Orbitrap, FT_ICR, Quadrupole };
+
+/* The relationship between peak width and m/z depends on instrument type. */
 double get_mz_scaling(double mz, instrument inst);
 
 /* */
@@ -125,6 +126,10 @@ inline double lerp(double x,
   double a = (x - x_min) / (x_max - x_min);
   return y_min + a * (y_max - y_min);
 }
+
+/* */
+recalibration_function nodes_to_recal(
+    const node_vec& nodes, const std::vector<size_t>& optimal_shifts);
 
 namespace detail {
 

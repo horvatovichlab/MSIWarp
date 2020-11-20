@@ -77,14 +77,7 @@ vector<vector<size_t>> find_optimal_warpings(const vector<peak_vec>& spectra,
 peak_vec warp_peaks(const peak_vec& peaks,
                     const node_vec& nodes,
                     const std::vector<size_t>& moves) {
-    size_t n = nodes.size();
-    
-    recalibration_function recal_func(n);    
-    for (size_t i = 0; i < n; ++i) {
-      recal_func[i] = {nodes[i].mz, nodes[i].mz_shifts[moves[i]]};
-    }
-
-    return warp_peaks_unique(peaks, recal_func);
+    return warp_peaks_unique(peaks, nodes_to_recal(nodes, moves));
 }
 
 peak_vec warp_peaks_unique(const peak_vec& peaks,
@@ -209,6 +202,22 @@ double gaussian_contribution(double x_a,
 
   return sigma_a * sigma_b * std::exp(0.5 * (a - b)) / std::sqrt(var_a + var_b);
 }
+
+
+recalibration_function nodes_to_recal(
+    const node_vec& nodes, const std::vector<size_t>& optimal_shifts) {
+  size_t n = nodes.size();
+  recalibration_function rf;
+
+  rf.reserve(n);
+  for (size_t i = 0; i < n; ++i) {
+    rf.push_back(
+        {nodes[i].mz, nodes[i].mz_shifts[optimal_shifts[i]]});
+  }
+
+  return rf;  
+}
+
 
 void detail::compute_warping_surf_impl(vector<double>& warping_surf,
                                const vector<peak_pair>& peaks_pairs,

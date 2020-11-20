@@ -5,51 +5,56 @@
 #include <numeric>
 #include <random>  // RANSAC
 
-#include "warp_util.hpp"
 #include "util/parallel.hpp"
+#include "warp_util.hpp"
 
 using std::pair;
 using std::vector;
 
 namespace warp::ransac {
 
+template <class Func, class Params>
+recalibration_function align_ransac_template(
+    const std::vector<peak_pair>& pairs, const params& ransac_params,
+    Func node_func, const Params& node_params_inliers) {
+  // find
+  util::params_uniform node_params_ransac{node_params_inliers.inst,
+                                          ransac_params.n_steps,
+                                          ransac_params.n_samples,
+                                          ransac_params.n_segments + 1,
+                                          ransac_params.mz_begin,
+                                          ransac_params.mz_end,
+                                          ransac_params.slack};
+
+  const auto pairs_inliers =
+      ransac_pairs(pairs, ransac_params, node_params_ransac);
+  const auto nodes_inliers = node_func(pairs_inliers, node_params_inliers);
+
+  // find the optimal shifts using nodes placed based on inliers
+  auto optimal_shifts =
+      find_optimal_warping_pairs(pairs_inliers, nodes_inliers);
+
+  return nodes_to_recal(nodes_inliers, optimal_shifts);
+}
+
 recalibration_function align_ransac_uniform(
-    const peak_vec& s_r,
-    const peak_vec& s_s,
-    double epsilon,
-    const ransac_params& rp,
+    const std::vector<peak_pair>& pairs, const params& ransac_params,
     const util::params_uniform& node_params) {
-  // find inliers
-  const auto pairs = overlapping_peak_pairs(s_r, s_s, epsilon);
-  const auto pairs_inliers = ransac_pairs(pairs, rp, node_params);
-
-  // find optimal warping with inliers
-  const auto nodes_inliers =
-      util::get_warping_nodes_uniform(pairs_inliers, node_params);
-  auto optimal_shifts = find_optimal_warping_pairs(pairs_inliers, nodes_inliers)
-  
-  
-
-  return {};
+  return align_ransac_template(pairs, ransac_params,
+                               util::get_warping_nodes_uniform, node_params);
 }
 
 recalibration_function align_ransac_density(
-    const peak_vec& s_r,
-    const peak_vec& s_s,
-    double epsilon,
-    const ransac_params& rp,
+    const std::vector<peak_pair>& pairs, const params& ransac_params,
     const util::params_density& node_params) {
-  // find inliers
-
-  // find optimal warping with inliers
-
-  return {};
+  return align_ransac_template(pairs, ransac_params,
+                               util::get_warping_nodes_density, node_params);
 }
 
 std::vector<peak_pair> ransac_pairs(const std::vector<peak_pair>& pairs,
-                                    const ransac_params& p,
+                                    const params& ransac_params,
                                     const util::params_uniform& node_params) {
-  if (pairs.size() < p.min_matched_peaks) {
+  if (pairs.size() < ransac_params.min_matched_peaks) {
     return pairs;  // early return if too few peak matches
   }
 
@@ -63,8 +68,9 @@ std::vector<peak_pair> ransac_pairs(const std::vector<peak_pair>& pairs,
     pairs_ransac.emplace_back(peak_pairs_between(pairs, n_left.mz, n_right.mz));
   }
 
-  const auto rr = ransac(pairs_ransac, nodes_ransac, p.n_iterations,
-                         p.n_samples, p.distance_threshold);
+  const auto rr =
+      ransac(pairs_ransac, nodes_ransac, ransac_params.n_iterations,
+             ransac_params.n_samples, ransac_params.distance_threshold);
 
   // use the model with the most inliers as the best
   const auto it_max_inliers = std::max_element(
@@ -87,10 +93,8 @@ std::vector<peak_pair> ransac_pairs(const std::vector<peak_pair>& pairs,
 }
 
 ransac_result ransac(const vector<vector<peak_pair>>& peak_pairs,
-                     const node_vec& warping_nodes,
-                     size_t n_iterations,
-                     size_t n_samples,
-                     double distance_threshold) {
+                     const node_vec& warping_nodes, size_t n_iterations,
+                     size_t n_samples, double distance_threshold) {
   size_t n_steps = warping_nodes.front().mz_shifts.size();
   size_t n_segments = peak_pairs.size();
   size_t n_peaks =
@@ -102,7 +106,7 @@ ransac_result ransac(const vector<vector<peak_pair>>& peak_pairs,
   std::mt19937 gen(rd());
   std::uniform_int_distribution<> udist(0, 100000);
 
-  // 
+  //
   vector<double> errors(n_iterations, 0.0);
   vector<vector<bool>> inliers(n_iterations, vector<bool>(n_peaks, false));
   vector<vector<size_t>> optimal_paths;
