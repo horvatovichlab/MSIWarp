@@ -18,7 +18,7 @@ node_vec get_warping_nodes_uniform(const std::vector<peak_pair>& pairs,
   } else {
     // use...
     size_t n = std::min(p.max_nodes, n_pairs / p.n_peaks);
-    size_t stride = pairs.size() / n;
+    size_t stride = pairs.size() / (n - 1);
 
     mzs.resize(n);
     mzs.front() = p.mz_begin;
@@ -26,7 +26,7 @@ node_vec get_warping_nodes_uniform(const std::vector<peak_pair>& pairs,
 
     size_t j = stride;
     for (size_t i = 1; i < n - 1; ++i) {
-      mzs[i] = pairs[j].first.mz;
+      mzs[i] = pairs[j].second.mz;
       j += stride;
     }
   }
@@ -37,6 +37,12 @@ node_vec get_warping_nodes_uniform(const std::vector<peak_pair>& pairs,
   });
 
   return warp::init_nodes(mzs, slacks, p.n_steps);
+}
+
+node_vec get_warping_nodes_density(const std::vector<peak_pair>& pairs,
+                                   const params_density& p) {
+  // TODO: implement
+  return {};
 }
 
 /* Function template for aligning with a custom node placement function, Func,

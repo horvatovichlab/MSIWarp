@@ -109,7 +109,7 @@ peak_vec warp_peaks_unique(const peak_vec& peaks,
 
 node_vec init_nodes(const vector<double>& mzs,
                     const vector<double>& slacks,
-                    uint32_t n_steps) {
+                    size_t n_steps) {
   size_t n_nodes = mzs.size();
   node_vec nodes;
   nodes.reserve(n_nodes);
@@ -124,7 +124,7 @@ node_vec init_nodes(const vector<double>& mzs,
 
     double ds = slack_i / n_steps;
     for (size_t j = 0; j < m; ++j) {
-      int k = j - n_steps;
+      int k = static_cast<int>(j - n_steps);
       mz_shifts_i[j] = ds * k;
     }
 

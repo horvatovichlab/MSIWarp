@@ -6,7 +6,6 @@
 #include <random>  // RANSAC
 
 #include "util/parallel.hpp"
-#include "warp_util.hpp"
 
 using std::pair;
 using std::vector;
@@ -15,53 +14,74 @@ namespace warp::ransac {
 
 template <class Func, class Params>
 recalibration_function align_ransac_template(
-    const std::vector<peak_pair>& pairs, const params& ransac_params,
-    Func node_func, const Params& node_params_inliers) {
-  // find
-  util::params_uniform node_params_ransac{node_params_inliers.inst,
-                                          ransac_params.n_steps,
-                                          ransac_params.n_samples,
-                                          ransac_params.n_segments + 1,
-                                          ransac_params.mz_begin,
-                                          ransac_params.mz_end,
-                                          ransac_params.slack};
+    const vector<peak_pair>& pairs, const params& ransac_params, Func node_func,
+    const Params& node_params_inliers) {
+  // always use uniform node placement in the RANSAC step
+  util::params_uniform node_params_ransac{
+      node_params_inliers.inst,
+      ransac_params.n_steps,
+      ransac_params.n_samples,
+      ransac_params.n_segments + 1,
+      ransac_params.mz_begin,
+      ransac_params.mz_end,
+      ransac_params.slack};
 
+  // find the true peak matches (inliers), and replace the warping nodes
   const auto pairs_inliers =
       ransac_pairs(pairs, ransac_params, node_params_ransac);
   const auto nodes_inliers = node_func(pairs_inliers, node_params_inliers);
 
-  // find the optimal shifts using nodes placed based on inliers
-  auto optimal_shifts =
+  // find the optimal shifts using the nodes placed based on inliers
+  const auto optimal_shifts =
       find_optimal_warping_pairs(pairs_inliers, nodes_inliers);
 
   return nodes_to_recal(nodes_inliers, optimal_shifts);
 }
 
 recalibration_function align_ransac_uniform(
-    const std::vector<peak_pair>& pairs, const params& ransac_params,
+    const vector<peak_pair>& pairs, const params& ransac_params,
     const util::params_uniform& node_params) {
   return align_ransac_template(pairs, ransac_params,
                                util::get_warping_nodes_uniform, node_params);
 }
 
 recalibration_function align_ransac_density(
-    const std::vector<peak_pair>& pairs, const params& ransac_params,
+    const vector<peak_pair>& pairs, const params& ransac_params,
     const util::params_density& node_params) {
   return align_ransac_template(pairs, ransac_params,
                                util::get_warping_nodes_density, node_params);
 }
 
-std::vector<peak_pair> ransac_pairs(const std::vector<peak_pair>& pairs,
-                                    const params& ransac_params,
-                                    const util::params_uniform& node_params) {
+vector<recalibration_function> find_optimal_warpings_uni(
+    const vector<peak_vec>& spectra, const peak_vec& s_ref,
+    const params& ransac_params, const util::params_uniform& node_params,
+    double epsilon, size_t n_cores) {
+  // TODO: move to parallel.hpp?
+  size_t split_len = spectra.size() / n_cores + 1;
+
+  // parallely find recalibration functions for all spectra
+  auto out = par::for_each(
+      split_len, spectra.begin(), spectra.end(), [&](const auto& s_i) {
+        const vector<peak_pair> pairs =
+            overlapping_peak_pairs(s_ref, s_i, epsilon);
+        return align_ransac_uniform(pairs, ransac_params, node_params);
+      });
+
+  return out;
+}
+
+vector<peak_pair> ransac_pairs(const vector<peak_pair>& pairs,
+                               const params& ransac_params,
+                               const util::params_uniform& node_params) {
   if (pairs.size() < ransac_params.min_matched_peaks) {
     return pairs;  // early return if too few peak matches
   }
 
   const auto nodes_ransac = util::get_warping_nodes_uniform(pairs, node_params);
 
+  // partition pairs by segment
   vector<vector<peak_pair>> pairs_ransac;
-  for (size_t i = 0; nodes_ransac.size() - 1; ++i) {
+  for (size_t i = 0; i < nodes_ransac.size() - 1; ++i) {
     const auto& n_left = nodes_ransac[i];
     const auto& n_right = nodes_ransac[i + 1];
 

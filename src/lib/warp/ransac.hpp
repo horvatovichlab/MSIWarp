@@ -50,6 +50,21 @@ ransac_result ransac(
     size_t n_samples,
     double distance_threshold);
 
+/* */
+recalibration_function align_ransac_uniform(
+    const std::vector<peak_pair>& pairs, const params& ransac_params,
+    const util::params_uniform& node_params);
+
+/* Find optimal warpings of specta relative to the reference spectrum, s_ref,
+ * with RANSAC and uniform node placement.  */
+std::vector<recalibration_function> find_optimal_warpings_uni(
+    const std::vector<peak_vec>& spectra,
+    const peak_vec& s_ref,
+    const params& ransac_params,
+    const util::params_uniform& params,
+    double epsilon,
+    size_t n_cores);
+
 }  // namespace warp::ransac
 
 #endif

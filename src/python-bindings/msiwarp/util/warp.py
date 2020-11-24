@@ -195,14 +195,14 @@ def triplets_to_ion_image(ts, meta):
     return to_ion_image(s, meta)
 
 
-def plot_peak_matches(pms, exp_factor, pointsize, ax):
+def plot_peak_matches(pms, exp_factor, pointsize, ax, **kwargs):
     """ Plot
     """
     x = [pm[0].mz for pm in pms]
     y = [pm[1].mz - pm[0].mz for pm in pms]    
     h = np.array([np.power(pm[0].height * pm[1].height, exp_factor) for pm in pms])
     
-    ax.scatter(x,y,h / np.max(h) * pointsize, c = 'tab:blue', alpha=0.5) 
+    ax.scatter(x,y,h / np.max(h) * pointsize, **kwargs) 
     
     
 def plot_warping(nodes, warping, ax):

@@ -71,7 +71,7 @@ peak_vec warp_peaks_unique(const peak_vec& peaks,
  * delta times n_steps.  */
 node_vec init_nodes(const std::vector<double>& mzs,
                     const std::vector<double>& deltas,
-                    uint32_t n_steps);
+                    size_t n_steps);
 
 /* Get all peaks in v within the range [begin, end). v must be sorted by m/z. */
 peak_vec peaks_between(const peak_vec& peaks, double mz_begin, double mz_end);

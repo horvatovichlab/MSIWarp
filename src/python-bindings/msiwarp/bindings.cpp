@@ -9,6 +9,7 @@
 #include "util/msi_triplet.hpp"
 #include "warp/warp.hpp"
 #include "warp/warp_util.hpp"
+#include "warp/ransac.hpp"
 
 namespace python_api {
 
@@ -272,36 +273,64 @@ PYBIND11_MODULE(msiwarp, m) {
         TODO: add documentation.
     )pbdoc");
 
-  // py::class_<warp::ransac_result>(m, "ransac_result")
-  //     .def_readonly("errors", &warp::ransac::ransac_result::errors)
-  //     .def_readonly("inliers", &warp::ransac_result::inliers)
-  //     .def_readonly("models", &warp::ransac_result::models)
-  //     .def_readonly("maybe_inliers", &warp::ransac_result::maybe_inliers)
-  //     .def("__repr__", [](const warp::ransac_result& rr) {
-  //       return "RANSAC results <number of iterations: " +
-  //              std::to_string(rr.errors.size()) + ">";
-  //     });
+  /* ---- python bindings to warp::ransac functions ---- */
+  py::class_<warp::ransac::ransac_result>(m, "ransac_result")
+      .def_readonly("errors", &warp::ransac::ransac_result::errors)
+      .def_readonly("inliers", &warp::ransac::ransac_result::inliers)
+      .def_readonly("models", &warp::ransac::ransac_result::models)
+      .def_readonly("maybe_inliers", &warp::ransac::ransac_result::maybe_inliers)
+      .def("__repr__", [](const warp::ransac::ransac_result& rr) {
+        return "RANSAC results <number of iterations: " +
+               std::to_string(rr.errors.size()) + ">";
+      });
 
-  // py::class_<warp::ransac_params>(m, "ransac_params")
-  //     .def_readonly("n_segments", &warp::ransac_params::n_segments)
-  //     .def_readonly("n_iterations", &warp::ransac_params::n_iterations)
-  //     .def_readonly("n_samples", &warp::ransac_params::n_samples)
-  //     .def_readonly("min_matched_peaks",
-  //                   &warp::ransac_params::min_matched_peaks)
-  //     .def_readonly("distance_threshold",
-  //                   &warp::ransac_params::distance_threshold)
-  //     .def_readonly("mz_begin", &warp::ransac_params::mz_begin)
-  //     .def_readonly("mz_end", &warp::ransac_params::mz_end)
-  //     .def("__repr__", [](const warp::ransac_params& p) {
-  //       return "RANSAC parameters: <n_segments: " +
-  //              std::to_string(p.n_segments) +
-  //              ", n_iterations: " + std::to_string(p.n_iterations) +
-  //              ", n_samples: " + std::to_string(p.n_samples) +
-  //              ", min_matched_peaks: " + std::to_string(p.min_matched_peaks) +
-  //              ", distance_threshold: " + std::to_string(p.distance_threshold) +
-  //              ", mz_begin: " + std::to_string(p.mz_begin) +
-  //              ", mz_end: " + std::to_string(p.mz_end) + ">";
-  //     });
+  py::class_<warp::ransac::params>(m, "ransac_params")
+      .def_readonly("n_segments", &warp::ransac::params::n_segments)
+      .def_readonly("n_iterations", &warp::ransac::params::n_iterations)
+      .def_readonly("n_samples", &warp::ransac::params::n_samples)
+      .def_readonly("min_matched_peaks",
+                    &warp::ransac::params::min_matched_peaks)
+      .def_readonly("n_steps", &warp::ransac::params::n_steps)
+      .def_readonly("slack", &warp::ransac::params::slack)
+      .def_readonly("mz_begin", &warp::ransac::params::mz_begin)
+      .def_readonly("mz_end", &warp::ransac::params::mz_end)
+      .def_readonly("distance_threshold",
+                    &warp::ransac::params::distance_threshold)
+      .def(py::init<size_t, size_t, size_t, size_t, size_t, double, double,
+                    double, double>())
+      .def("__repr__", [](const warp::ransac::params& p) {
+        return "RANSAC parameters <n_segments:" + std::to_string(p.n_segments) +
+               "n_iterations:" + std::to_string(p.n_iterations) +
+               "n_samples:" + std::to_string(p.n_samples) +
+               "min_peak_matches:" + std::to_string(p.min_matched_peaks) +
+               "n_steps:" + std::to_string(p.n_steps) +
+               "slack:" + std::to_string(p.slack) +
+               "mz_begin:" + std::to_string(p.mz_begin) +
+               "mz_end:" + std::to_string(p.mz_end) +
+               "distance_threshold:" + std::to_string(p.distance_threshold) +
+               ">";
+      });
+
+  m.def("ransac_pairs", &warp::ransac::ransac_pairs,
+        R"pbdoc(
+        Remove spurious peak matches with RANSAC.
+    )pbdoc");
+
+  m.def("ransac", &warp::ransac::ransac,
+        R"pbdoc(
+        Perform RANSAC on pairs and return results for each iteration.
+    )pbdoc");
+
+  m.def("align_ransac_uniform", &warp::ransac::align_ransac_uniform,
+        R"pbdoc(
+        Perform RANSAC on pairs and return results for each iteration.
+    )pbdoc");
+
+  m.def("find_optimal_warpings_ransac_uni",
+        &warp::ransac::find_optimal_warpings_uni,
+        R"pbdoc(
+        Perform RANSAC on pairs and return results for each iteration.
+    )pbdoc");
 
 #ifdef VERSION_INFO
   m.attr("__version__") = VERSION_INFO;
