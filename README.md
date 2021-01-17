@@ -177,4 +177,5 @@ ax[0].set_ylabel('spectrum index')
 
 ![DESI MASS SCATTER](/docs/mass_scatter_desi.png)
 
-## Misc
+## Reference
+Eriksson JO, Sánchez Brotons A, Rezeli M, Suits F, Markó-Varga G, Horvatovich P., [MSIWarp: A General Approach to Mass Alignment in Mass Spectrometry Imaging](https://pubs.acs.org/doi/abs/10.1021/acs.analchem.0c03833), Anal Chem. 2020, 92(24):16138-16148. [doi: 10.1021/acs.analchem.0c03833](https://pubs.acs.org/doi/abs/10.1021/acs.analchem.0c03833). [PMID: 33317272](https://pubmed.ncbi.nlm.nih.gov/33317272/).
