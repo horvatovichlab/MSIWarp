@@ -228,13 +228,13 @@ PYBIND11_MODULE(msiwarp, m) {
       .def_readonly("id", &warp::peak::id)
       .def_readonly("mz", &warp::peak::mz)
       .def_readonly("height", &warp::peak::height)
-      .def_readonly("sigma_mz", &warp::peak::sigma)
+      .def_readonly("sigma", &warp::peak::sigma)
       .def(py::init<uint32_t, double, double, double>())
       .def("__repr__", [](const warp::peak& p) {
         return "Peak <entity_id: " + std::to_string(p.id) +
                ", mz: " + std::to_string(p.mz) +
                ", height: " + std::to_string(p.height) +
-               ", sigma_mz: " + std::to_string(p.sigma) + ">";
+               ", sigma: " + std::to_string(p.sigma) + ">";
       });
 
   py::class_<warp::node>(m, "node")

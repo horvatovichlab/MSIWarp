@@ -8,8 +8,7 @@ from scipy.signal import find_peaks
 from .parabolic_centroid import parabolic_centroid
 from .read_sbd import read_spectrum_fs
 
-
-# Utility functions
+# ------  utility functions for the python interface ------
 def get_mx_spectrum(file, meta, i, sigma_1, instrument_type):
     """Read a spectrum from .sbd file and set peak width according to sigma
     and instrument type.
@@ -18,18 +17,23 @@ def get_mx_spectrum(file, meta, i, sigma_1, instrument_type):
     return to_mx_peaks(*s_i, sigma_1, id=i, instrument_type=instrument_type)
 
 
-def to_mx_peaks(mz, intensity, sigma_0, id = 0, instrument_type = 'orbitrap'):
+def to_mx_peaks(mzs, hs, sigma_1, id = 0, instrument_type = 'orbitrap'):
+    """Generate a list of MSIWarp spectra, [s0, ..., sn], from a list of
+     m/z values, mzs: [mz0, ..., mzn], and intensities, hs: [h0, ..., hn]. sigma_1 is
+     the expected peak width at m/z = 1.0.
     """
-    """
-    if(instrument_type == 'orbitrap'):
-        return np.array([mx.peak(id, mz_i, intensity_i, sigma_0 * (mz_i ** (3/2)))
-                     for (mz_i, intensity_i) in zip(mz, intensity)], dtype=mx.peak)
+    if(instrument_type == 'quadrupole'):
+        return np.array([mx.peak(id, mz_i, intensity_i, sigma_1)
+                     for (mz_i, intensity_i) in zip(mzs, hs)], dtype=mx.peak)
     elif(instrument_type == 'tof'):
-        return  np.array([mx.peak(id, mz_i, intensity_i, sigma_0 * mz_i)
-                     for (mz_i, intensity_i) in zip(mz, intensity)], dtype=mx.peak)
+        return  np.array([mx.peak(id, mz_i, intensity_i, sigma_1 * mz_i)
+                     for (mz_i, intensity_i) in zip(mzs, hs)], dtype=mx.peak)
+    elif(instrument_type == 'orbitrap'):
+        return np.array([mx.peak(id, mz_i, intensity_i, sigma_1 * (mz_i ** (3/2)))
+                     for (mz_i, intensity_i) in zip(mzs, hs)], dtype=mx.peak)
     elif(instrument_type =='ft-icr'):
-        return  np.array([mx.peak(id, mz_i, intensity_i, sigma_0 * (mz_i ** 2))
-                     for (mz_i, intensity_i) in zip(mz, intensity)], dtype=mx.peak)
+        return  np.array([mx.peak(id, mz_i, intensity_i, sigma_1 * (mz_i ** 2))
+                     for (mz_i, intensity_i) in zip(mzs, hs)], dtype=mx.peak)
 
 def to_mz(mx_peaks):
     return np.array([p.mz for p in mx_peaks])
@@ -92,9 +96,10 @@ def quantile_peaks(peaks, q):
     sel = heights > np.quantile(heights, q)    
     return mzs[sel]
 
-# ----------- Utility functions --------------
+
 def peak_density_mz(spectra, xi, bandwidth=15, threshold=0.1, stride=100):
-    """ 
+    """Generate a density estimate of peak density on a set of m/z sampling points, xi,
+    from a list of spectra. Returns the density curve and its peak x and y positions. 
     """
     yi = np.zeros(len(xi))
 
@@ -111,16 +116,6 @@ def peak_density_mz(spectra, xi, bandwidth=15, threshold=0.1, stride=100):
     sel = yp > threshold * np.max(yp)
     
     return (yi, xp[sel], yp[sel])   
-
-
-def spectra_to_triplet(spectra):
-    """
-    """
-    ts = []
-    for i, s_i in enumerate(spectra):
-        for p_i in s_i:
-            ts.append(mx.msi_triplet(i, p_i.mz, p_i.height))
-    return ts
 
 
 def generate_mean_spectrum(spectra, n_points, sigma_1, mz_begin,
@@ -185,7 +180,7 @@ def plot_range(fpath, mz0, mz1, ax, col, size=20, in_ppm = False):
 
 
 def triplets_to_ion_image(ts, meta):
-    """Accumulate all intensities within mass bin for each pixel.
+    """Sum all intensities within mass bin for each pixel.
     returns: numpy matrix
     """
     s = np.zeros(len(meta))
@@ -196,7 +191,7 @@ def triplets_to_ion_image(ts, meta):
 
 
 def plot_peak_matches(pms, exp_factor, pointsize, ax, **kwargs):
-    """ Plot
+    """Plot
     """
     x = [pm[0].mz for pm in pms]
     y = [pm[1].mz - pm[0].mz for pm in pms]    
@@ -206,7 +201,7 @@ def plot_peak_matches(pms, exp_factor, pointsize, ax, **kwargs):
     
     
 def plot_warping(nodes, warping, ax):
-    """Plot the recalibration function
+    """Plot the recalibration function.
     """
     y = np.array([n.mz_shifts[w] for (n, w) in zip(nodes, warping)])
     x = np.array([n.mz for n in nodes])
