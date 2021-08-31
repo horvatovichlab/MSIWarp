@@ -31,7 +31,7 @@ n_cores = 4
 recal_funcs = mx.find_optimal_warpings_uni(spectra, reference_spectrum, params, epsilon, n_cores)
 
 # use the recalibration functions to warp the spectra
-warped_spectra = [mx.warp_peaks_unique(s_i, r_i) for (s_i, r_i) in zip(spectra, recal_funcs)
+warped_spectra = [mx.warp_peaks_unique(s_i, r_i) for (s_i, r_i) in zip(spectra, recal_funcs)]
 
 # ... code to store the warped spectra
 
