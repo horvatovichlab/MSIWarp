@@ -2,6 +2,7 @@
 #define WARP_HPP
 
 #include <cstdint>
+#include <cstddef>
 #include <vector>
 
 namespace warp {
